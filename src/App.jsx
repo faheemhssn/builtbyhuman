@@ -10,20 +10,32 @@ export default function App() {
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   const [scansUsed, setScansUsed] = useState(0)
+  const [scanLimit, setScanLimit] = useState(3)
 
 useEffect(() => {
   if (!user) return
-  async function fetchScanCount() {
-    const now = new Date()
-    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-    const { count } = await supabase
-      .from('scans')
-      .select('*', { count: 'exact', head: true })
+  async function fetchUserData() {
+    let { data: userData } = await supabase
+      .from('users')
+      .select('*')
       .eq('user_id', user.id)
-      .gte('created_at', firstOfMonth)
-    setScansUsed(count || 0)
+      .single()
+
+    if (!userData) {
+      const { data: newUser } = await supabase
+        .from('users')
+        .insert({ user_id: user.id, scan_limit: 3, scans_used: 0 })
+        .select()
+        .single()
+      userData = newUser
+    }
+
+    if (userData) {
+      setScanLimit(userData.scan_limit)
+      setScansUsed(userData.scans_used)
+    }
   }
-  fetchScanCount()
+  fetchUserData()
 }, [user])
 
   const handleScan = async () => {
@@ -40,13 +52,13 @@ useEffect(() => {
       })
       const data = await res.json()
       if (!res.ok) {
-  if (data.limitReached) {
-    throw new Error('You\'ve used all 3 free scans this month. Upgrade to Pro for unlimited scans.')
-  }
-  throw new Error(data.error || 'Scan failed')
-}
+        if (data.limitReached) {
+          throw new Error(`You've used all ${scanLimit} scans this month. Upgrade to Pro for 50 scans.`)
+        }
+        throw new Error(data.error || 'Scan failed')
+      }
       setResult(data)
-setScansUsed(prev => prev + 1)
+      setScansUsed(prev => prev + 1)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -119,17 +131,18 @@ setScansUsed(prev => prev + 1)
 
         <SignedIn>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px', gap: '8px', alignItems: 'center' }}>
-  {[0,1,2].map(i => (
-    <div key={i} style={{
-      width: '10px', height: '10px', borderRadius: '50%',
-      background: i < scansUsed ? '#ef4444' : '#22c55e',
-      transition: 'background 0.3s'
-    }} />
-  ))}
-  <span style={{ fontSize: '13px', color: '#64748b', marginLeft: '8px' }}>
-    {3 - scansUsed} scan{3 - scansUsed !== 1 ? 's' : ''} remaining this month
-  </span>
-</div>
+            {Array.from({ length: scanLimit }).map((_, i) => (
+              <div key={i} style={{
+                width: '10px', height: '10px', borderRadius: '50%',
+                background: i < scansUsed ? '#ef4444' : '#22c55e',
+                transition: 'background 0.3s'
+              }} />
+            ))}
+            <span style={{ fontSize: '13px', color: '#64748b', marginLeft: '8px' }}>
+              {scanLimit - scansUsed} scan{scanLimit - scansUsed !== 1 ? 's' : ''} remaining this month
+            </span>
+          </div>
+
           <div style={{ display: 'flex', gap: '12px', maxWidth: '600px', margin: '0 auto' }}>
             <input
               type="url"
@@ -154,7 +167,7 @@ setScansUsed(prev => prev + 1)
             </div>
           )}
 
-          {scansUsed >= 3 && (
+          {scansUsed >= scanLimit && (
             <div style={{ marginTop: '24px', background: '#1e3a5f', border: '1px solid #2563eb', borderRadius: '12px', padding: '24px', maxWidth: '600px', margin: '24px auto 0' }}>
               <div style={{ fontSize: '16px', fontWeight: '700', color: '#f8fafc', marginBottom: '8px' }}>
                 🚀 Upgrade to Pro
