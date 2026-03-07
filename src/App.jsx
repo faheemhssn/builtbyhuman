@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react'
+import { supabase } from './supabase'
 import ScanHistory from './ScanHistory'
-import { useState } from 'react'
 import { SignedIn, SignedOut, SignInButton, UserButton, useUser } from '@clerk/clerk-react'
 
 export default function App() {
@@ -8,6 +9,22 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
+  const [scansUsed, setScansUsed] = useState(0)
+
+useEffect(() => {
+  if (!user) return
+  async function fetchScanCount() {
+    const now = new Date()
+    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    const { count } = await supabase
+      .from('scans')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('created_at', firstOfMonth)
+    setScansUsed(count || 0)
+  }
+  fetchScanCount()
+}, [user])
 
   const handleScan = async () => {
     if (!url) return
@@ -22,8 +39,14 @@ export default function App() {
         body: JSON.stringify({ url, userId: user?.id })
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Scan failed')
+      if (!res.ok) {
+  if (data.limitReached) {
+    throw new Error('You\'ve used all 3 free scans this month. Upgrade to Pro for unlimited scans.')
+  }
+  throw new Error(data.error || 'Scan failed')
+}
       setResult(data)
+setScansUsed(prev => prev + 1)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -79,6 +102,18 @@ export default function App() {
         </p>
 
         <SignedIn>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px', gap: '8px', alignItems: 'center' }}>
+  {[0,1,2].map(i => (
+    <div key={i} style={{
+      width: '10px', height: '10px', borderRadius: '50%',
+      background: i < scansUsed ? '#ef4444' : '#22c55e',
+      transition: 'background 0.3s'
+    }} />
+  ))}
+  <span style={{ fontSize: '13px', color: '#64748b', marginLeft: '8px' }}>
+    {3 - scansUsed} scan{3 - scansUsed !== 1 ? 's' : ''} remaining this month
+  </span>
+</div>
           <div style={{ display: 'flex', gap: '12px', maxWidth: '600px', margin: '0 auto' }}>
             <input
               type="url"

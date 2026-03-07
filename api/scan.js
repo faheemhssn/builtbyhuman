@@ -54,6 +54,25 @@ export default async function handler(req, res) {
   const { url, userId } = req.body
   if (!url) return res.status(400).json({ error: 'URL is required' })
 
+  // Check scan limit
+  if (userId) {
+    const now = new Date()
+    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    
+    const { count } = await supabase
+      .from('scans')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', firstOfMonth)
+
+    if (count >= 3) {
+      return res.status(403).json({ 
+        error: 'Monthly limit reached',
+        limitReached: true
+      })
+    }
+  }
+
   try {
     const pageRes = await fetch(url, { 
       headers: { 'User-Agent': 'Mozilla/5.0' },
