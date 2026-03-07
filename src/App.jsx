@@ -4,11 +4,46 @@ import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-reac
 export default function App() {
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState(null)
+  const [error, setError] = useState(null)
 
   const handleScan = async () => {
     if (!url) return
     setLoading(true)
-    setTimeout(() => setLoading(false), 2000)
+    setResult(null)
+    setError(null)
+
+    try {
+      const res = await fetch('/api/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Scan failed')
+      setResult(data)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getVerdictColor = (verdict) => {
+    if (!verdict) return '#94a3b8'
+    if (verdict.includes('human')) return '#22c55e'
+    if (verdict.includes('mixed')) return '#f59e0b'
+    return '#ef4444'
+  }
+
+  const getVerdictLabel = (verdict) => {
+    const labels = {
+      likely_human: 'Likely Human',
+      mixed: 'Mixed',
+      likely_ai: 'Likely AI',
+      almost_certainly_ai: 'Almost Certainly AI'
+    }
+    return labels[verdict] || verdict
   }
 
   return (
@@ -52,11 +87,45 @@ export default function App() {
             <button
               onClick={handleScan}
               disabled={loading || !url}
-              style={{ padding: '14px 28px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '10px', fontWeight: '700', fontSize: '16px', cursor: 'pointer' }}
+              style={{ padding: '14px 28px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '10px', fontWeight: '700', fontSize: '16px', cursor: loading ? 'not-allowed' : 'pointer' }}
             >
               {loading ? 'Scanning...' : 'Scan URL'}
             </button>
           </div>
+
+          {error && (
+            <div style={{ marginTop: '24px', background: '#450a0a', border: '1px solid #ef4444', borderRadius: '10px', padding: '16px', color: '#fca5a5' }}>
+              {error}
+            </div>
+          )}
+
+          {result && (
+            <div style={{ marginTop: '40px', background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: '32px', textAlign: 'left' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <div>
+                  <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px' }}>AI Authorship Score</div>
+                  <div style={{ fontSize: '56px', fontWeight: '800', color: getVerdictColor(result.verdict), lineHeight: 1 }}>
+                    {result.score}%
+                  </div>
+                </div>
+                <div style={{ background: '#0f172a', borderRadius: '12px', padding: '12px 20px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px' }}>Verdict</div>
+                  <div style={{ fontWeight: '700', color: getVerdictColor(result.verdict) }}>
+                    {getVerdictLabel(result.verdict)}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ background: '#0f172a', borderRadius: '8px', padding: '16px' }}>
+                <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Analysis</div>
+                <p style={{ color: '#cbd5e1', margin: 0, lineHeight: '1.6' }}>{result.reasoning}</p>
+              </div>
+
+              <div style={{ marginTop: '16px', fontSize: '12px', color: '#475569', wordBreak: 'break-all' }}>
+                Scanned: {result.url}
+              </div>
+            </div>
+          )}
         </SignedIn>
 
         <SignedOut>
@@ -74,7 +143,6 @@ export default function App() {
           Free • No credit card required • 3 scans/month
         </p>
       </main>
-
     </div>
   )
 }
