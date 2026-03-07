@@ -54,7 +54,22 @@ setScansUsed(prev => prev + 1)
     }
   }
   
-  // ... rest of your component
+  const handleUpgrade = async () => {
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId: user?.id, 
+          email: user?.primaryEmailAddress?.emailAddress 
+        })
+      })
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+    } catch (err) {
+      console.error(err)
+    }
+  }
 
   const getVerdictColor = (verdict) => {
     if (!verdict) return '#94a3b8'
@@ -135,6 +150,23 @@ setScansUsed(prev => prev + 1)
           {error && (
             <div style={{ marginTop: '24px', background: '#450a0a', border: '1px solid #ef4444', borderRadius: '10px', padding: '16px', color: '#fca5a5' }}>
               {error}
+            </div>
+          )}
+
+          {scansUsed >= 3 && (
+            <div style={{ marginTop: '24px', background: '#1e3a5f', border: '1px solid #2563eb', borderRadius: '12px', padding: '24px', maxWidth: '600px', margin: '24px auto 0' }}>
+              <div style={{ fontSize: '16px', fontWeight: '700', color: '#f8fafc', marginBottom: '8px' }}>
+                🚀 Upgrade to Pro
+              </div>
+              <div style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '16px' }}>
+                50 scans/month • Priority analysis • Full signal breakdown
+              </div>
+              <button
+                onClick={handleUpgrade}
+                style={{ background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', padding: '12px 32px', fontWeight: '700', fontSize: '15px', cursor: 'pointer' }}
+              >
+                Upgrade for $12/month
+              </button>
             </div>
           )}
 
