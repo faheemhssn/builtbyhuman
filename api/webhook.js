@@ -35,19 +35,25 @@ export default async function handler(req, res) {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object
+    console.log('Session metadata:', JSON.stringify(session.metadata))
+    console.log('Session customer:', session.customer)
     const userId = session.metadata?.userId
 
     if (userId) {
       const resetDate = new Date()
       resetDate.setMonth(resetDate.getMonth() + 1)
 
-      await supabase.from('users').upsert({
+      const { error } = await supabase.from('users').upsert({
         user_id: userId,
         is_pro: true,
         scan_limit: 50,
         scans_used: 0,
         reset_date: resetDate.toISOString().split('T')[0]
       }, { onConflict: 'user_id' })
+      
+      console.log('Upsert error:', error)
+    } else {
+      console.log('No userId found in metadata!')
     }
   }
 

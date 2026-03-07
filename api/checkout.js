@@ -16,7 +16,7 @@ export default async function handler(req, res) {
         quantity: 1
       }],
       customer_email: email,
-      metadata: { userId },
+      metadata: { userId: userId || '' },
       success_url: `${req.headers.origin}?upgraded=true`,
       cancel_url: `${req.headers.origin}?upgraded=false`
     })
