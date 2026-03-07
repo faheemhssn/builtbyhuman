@@ -12,7 +12,7 @@ export default async function handler(req, res) {
       payment_method_types: ['card'],
       mode: 'subscription',
       line_items: [{
-        price: 'price_1T5tn3BbA4BFPLV6UfcWn65s',
+        price: process.env.STRIPE_PRICE_ID,,
         quantity: 1
       }],
       customer_email: email,
