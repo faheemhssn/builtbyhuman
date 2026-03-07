@@ -113,7 +113,8 @@ setScansUsed(prev => prev + 1)
           Was this site built by a human?
         </h1>
         <p style={{ fontSize: '18px', color: '#94a3b8', marginBottom: '48px', lineHeight: '1.6' }}>
-          Paste any URL and get an AI Authorship Score in seconds. Know before you pay. Know after you receive.
+          Stop Paying Human Prices for AI-Generated Work. Instantly audit any URL to uncover hidden AI authorship signals. 
+          Whether you're vetting a freelancer's portfolio or verifying a final delivery, get the data you need to pay with confidence.
         </p>
 
         <SignedIn>
