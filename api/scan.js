@@ -1,23 +1,26 @@
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.VITE_SUPABASE_URL,
+  process.env.VITE_SUPABASE_ANON_KEY
+)
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const { url } = req.body
+  const { url, userId } = req.body
 
   if (!url) {
     return res.status(400).json({ error: 'URL is required' })
   }
 
   try {
-    // Step 1: Fetch the page
     const pageRes = await fetch(url)
     const html = await pageRes.text()
-
-    // Step 2: Extract a chunk of code to analyze (first 3000 chars)
     const codeChunk = html.slice(0, 3000)
 
-    // Step 3: Call Claude API
     const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -46,6 +49,16 @@ ${codeChunk}`
     const claudeData = await claudeRes.json()
     const text = claudeData.content[0].text
     const result = JSON.parse(text.replace(/```json|```/g, '').trim())
+
+    // Save to Supabase
+    await supabase.from('scans').insert({
+      url,
+      score: result.ai_probability,
+      verdict: result.verdict,
+      report: result,
+      status: 'complete',
+      user_id: userId || null
+    })
 
     return res.status(200).json({
       url,

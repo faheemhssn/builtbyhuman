@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react'
+import { SignedIn, SignedOut, SignInButton, UserButton, useUser } from '@clerk/clerk-react'
 
 export default function App() {
+  const { user } = useUser()
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
@@ -17,7 +18,7 @@ export default function App() {
       const res = await fetch('/api/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url })
+        body: JSON.stringify({ url, userId: user?.id })
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Scan failed')
@@ -28,6 +29,8 @@ export default function App() {
       setLoading(false)
     }
   }
+  
+  // ... rest of your component
 
   const getVerdictColor = (verdict) => {
     if (!verdict) return '#94a3b8'
