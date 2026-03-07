@@ -14,13 +14,12 @@ async function extractJsFiles(html, baseUrl) {
     if (src.startsWith('//')) src = 'https:' + src
     else if (src.startsWith('/')) src = new URL(baseUrl).origin + src
     else if (!src.startsWith('http')) src = new URL(src, baseUrl).href
-    // skip CDN/third-party scripts
     if (!src.includes(new URL(baseUrl).hostname) && 
         (src.includes('cdn') || src.includes('googleapis') || 
          src.includes('analytics') || src.includes('gtag'))) continue
     matches.push(src)
   }
-  return matches.slice(0, 5) // max 5 JS files
+  return matches.slice(0, 5)
 }
 
 async function fetchJsContent(urls) {
@@ -32,18 +31,14 @@ async function fetchJsContent(urls) {
         signal: AbortSignal.timeout(5000)
       })
       const text = await res.text()
-      // skip minified files that are too long with no newlines
       const lineCount = (text.match(/\n/g) || []).length
       const isMinified = text.length > 1000 && lineCount < 10
       if (!isMinified) {
         contents.push({ url, code: text.slice(0, 2000) })
       } else {
-        // for minified, take a smaller sample
         contents.push({ url, code: text.slice(0, 500), minified: true })
       }
-    } catch (e) {
-      // skip files that fail to load
-    }
+    } catch (e) {}
   }
   return contents
 }
@@ -54,18 +49,24 @@ export default async function handler(req, res) {
   const { url, userId } = req.body
   if (!url) return res.status(400).json({ error: 'URL is required' })
 
-  // Check scan limit
+  // Check scan limit from users table
   if (userId) {
-    const now = new Date()
-    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-    
-    const { count } = await supabase
-      .from('scans')
-      .select('*', { count: 'exact', head: true })
+    let { data: userData } = await supabase
+      .from('users')
+      .select('*')
       .eq('user_id', userId)
-      .gte('created_at', firstOfMonth)
+      .single()
 
-    if (count >= 3) {
+    if (!userData) {
+      const { data: newUser } = await supabase
+        .from('users')
+        .insert({ user_id: userId, scan_limit: 3, scans_used: 0 })
+        .select()
+        .single()
+      userData = newUser
+    }
+
+    if (userData && userData.scans_used >= userData.scan_limit) {
       return res.status(403).json({ 
         error: 'Monthly limit reached',
         limitReached: true
@@ -80,15 +81,10 @@ export default async function handler(req, res) {
     })
     const html = await pageRes.text()
 
-    // Extract JS file URLs
     const jsUrls = await extractJsFiles(html, url)
-
-    // Fetch JS file contents
     const jsFiles = await fetchJsContent(jsUrls)
 
-    // Build analysis payload
     let codePayload = `=== HTML HEAD (first 1000 chars) ===\n${html.slice(0, 1000)}\n\n`
-
     if (jsFiles.length > 0) {
       jsFiles.forEach((f, i) => {
         codePayload += `=== JS FILE ${i + 1}: ${f.url} ${f.minified ? '(minified)' : ''} ===\n${f.code}\n\n`
@@ -136,6 +132,7 @@ ${codePayload}`
     const text = claudeData.content[0].text
     const result = JSON.parse(text.replace(/```json|```/g, '').trim())
 
+    // Save scan to scans table
     await supabase.from('scans').insert({
       url,
       score: result.ai_probability,
@@ -144,6 +141,26 @@ ${codePayload}`
       status: 'complete',
       user_id: userId || null
     })
+
+    // Increment scans_used in users table
+    if (userId) {
+      await supabase
+        .from('users')
+        .update({ scans_used: supabase.rpc('increment', { row_id: userId }) })
+        .eq('user_id', userId)
+
+      // Simpler approach - just increment directly
+      const { data: currentUser } = await supabase
+        .from('users')
+        .select('scans_used')
+        .eq('user_id', userId)
+        .single()
+
+      await supabase
+        .from('users')
+        .update({ scans_used: (currentUser?.scans_used || 0) + 1 })
+        .eq('user_id', userId)
+    }
 
     return res.status(200).json({
       url,
