@@ -122,7 +122,30 @@ export default function App() {
 
               <div style={{ background: '#0f172a', borderRadius: '8px', padding: '16px' }}>
                 <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Analysis</div>
-                <p style={{ color: '#cbd5e1', margin: 0, lineHeight: '1.6' }}>{result.reasoning}</p>
+                <p style={{ color: '#cbd5e1', margin: '0 0 16px', lineHeight: '1.6' }}>{result.reasoning}</p>
+                
+                {result.signals && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <div style={{ fontSize: '11px', color: '#ef4444', marginBottom: '6px', fontWeight: '600' }}>🤖 AI Signals</div>
+                      {result.signals.ai_indicators?.map((s, i) => (
+                        <div key={i} style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>• {s}</div>
+                      ))}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '11px', color: '#22c55e', marginBottom: '6px', fontWeight: '600' }}>👤 Human Signals</div>
+                      {result.signals.human_indicators?.map((s, i) => (
+                        <div key={i} style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>• {s}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {result.filesAnalyzed > 0 && (
+                  <div style={{ marginTop: '12px', fontSize: '11px', color: '#475569' }}>
+                    📁 {result.filesAnalyzed} JS file{result.filesAnalyzed > 1 ? 's' : ''} analyzed
+                  </div>
+                )}
               </div>
 
               <div style={{ marginTop: '16px', fontSize: '12px', color: '#475569', wordBreak: 'break-all' }}>
