@@ -1,3 +1,4 @@
+import ScanHistory from './ScanHistory'
 import { useState } from 'react'
 import { SignedIn, SignedOut, SignInButton, UserButton, useUser } from '@clerk/clerk-react'
 
@@ -129,6 +130,8 @@ export default function App() {
               </div>
             </div>
           )}
+
+          <ScanHistory />
         </SignedIn>
 
         <SignedOut>
