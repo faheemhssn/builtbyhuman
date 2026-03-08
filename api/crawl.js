@@ -18,7 +18,6 @@ async function extractInternalLinks(html, baseUrl) {
     } else if (!href.startsWith('http')) {
       continue
     }
-    // Only internal links, skip anchors/assets
     if (href.startsWith(origin) && 
         !href.includes('#') &&
         !href.match(/\.(pdf|jpg|jpeg|png|gif|svg|css|js|ico|xml|txt)$/i)) {
@@ -143,7 +142,7 @@ async function analyzePage(url) {
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
+      max_tokens: 1500,
       temperature: 0,
       messages: [{
         role: 'user',
@@ -158,8 +157,17 @@ Analyze the following web code and return ONLY valid JSON with no markdown:
   "signals": {
     "ai_indicators": ["list of specific AI-like patterns found"],
     "human_indicators": ["list of specific human-like patterns found"]
-  }
+  },
+  "evidence": [
+    {
+      "type": <"ai" | "human">,
+      "label": "<short label describing what this snippet reveals, e.g. 'Generic variable naming'>",
+      "snippet": "<exact short code snippet from the analyzed code, max 120 chars>"
+    }
+  ]
 }
+
+For evidence, include 3-6 of the most compelling snippets — actual code copied from the input that best supports your verdict. Pick snippets that clearly demonstrate AI or human authorship. Keep each snippet under 120 characters.
 
 Key signals to look for:
 AI indicators: perfectly uniform indentation, generic variable names (data, result, item), boilerplate comments, cookie-cutter component structure, excessive abstraction for simple tasks, v0/Copilot/ChatGPT artifacts, overly consistent naming conventions, no typos or fixup commits visible in code comments
@@ -182,6 +190,7 @@ ${codePayload}`
     confidence: result.confidence,
     reasoning: result.reasoning,
     signals: result.signals,
+    evidence: result.evidence || [],
     filesAnalyzed: jsFiles.length + inlineScripts.length + cssFiles.length
   }
 }
@@ -232,7 +241,8 @@ export default async function handler(req, res) {
       }
     }
   }
-// Check cache
+
+  // Check cache
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
   const { data: cachedScan } = await supabase
     .from('scans')
@@ -254,6 +264,7 @@ export default async function handler(req, res) {
       cached: true
     })
   }
+
   try {
     // Fetch homepage and extract internal links
     const homepageRes = await fetch(url, {

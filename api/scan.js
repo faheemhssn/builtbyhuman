@@ -90,7 +90,8 @@ export default async function handler(req, res) {
       }
     }
   }
-// Check cache — return existing scan if same URL scanned in last 24 hours
+
+  // Check cache — return existing scan if same URL scanned in last 24 hours
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
   const { data: cachedScan } = await supabase
     .from('scans')
@@ -109,10 +110,12 @@ export default async function handler(req, res) {
       verdict: cachedScan.verdict,
       reasoning: cachedScan.report?.reasoning,
       signals: cachedScan.report?.signals,
+      evidence: cachedScan.report?.evidence || [],
       filesAnalyzed: cachedScan.report?.filesAnalyzed || 0,
       cached: true
     })
   }
+
   try {
     const pageRes = await fetch(url, { 
       headers: { 'User-Agent': 'Mozilla/5.0' },
@@ -141,7 +144,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 1024,
+        max_tokens: 1500,
         temperature: 0,
         messages: [{
           role: 'user',
@@ -155,8 +158,17 @@ Analyze the following web code and return ONLY valid JSON with no markdown:
   "signals": {
     "ai_indicators": ["list of specific AI-like patterns found"],
     "human_indicators": ["list of specific human-like patterns found"]
-  }
+  },
+  "evidence": [
+    {
+      "type": <"ai" | "human">,
+      "label": "<short label describing what this snippet reveals, e.g. 'Generic variable naming'>",
+      "snippet": "<exact short code snippet from the analyzed code, max 120 chars>"
+    }
+  ]
 }
+
+For evidence, include 3-6 of the most compelling snippets — actual code copied from the input that best supports your verdict. Pick snippets that clearly demonstrate AI or human authorship. Keep each snippet under 120 characters.
 
 Key signals to look for:
 AI indicators: perfectly uniform indentation, generic variable names (data, result, item), boilerplate comments, cookie-cutter component structure, excessive abstraction for simple tasks, v0/Copilot/ChatGPT artifacts
@@ -177,19 +189,13 @@ ${codePayload}`
       url,
       score: result.ai_probability,
       verdict: result.verdict,
-      report: result,
+      report: { ...result, filesAnalyzed: jsFiles.length },
       status: 'complete',
       user_id: userId || null
     })
 
     // Increment scans_used in users table
     if (userId) {
-      await supabase
-        .from('users')
-        .update({ scans_used: supabase.rpc('increment', { row_id: userId }) })
-        .eq('user_id', userId)
-
-      // Simpler approach - just increment directly
       const { data: currentUser } = await supabase
         .from('users')
         .select('scans_used')
@@ -218,6 +224,7 @@ ${codePayload}`
       verdict: result.verdict,
       reasoning: result.reasoning,
       signals: result.signals,
+      evidence: result.evidence || [],
       filesAnalyzed: jsFiles.length
     })
 

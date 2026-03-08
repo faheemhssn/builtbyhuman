@@ -176,7 +176,29 @@ export default function App() {
       </div>
     </div>
   )
-
+  const EvidenceBlock = ({ evidence }) => {
+  if (!evidence || evidence.length === 0) return null
+  return (
+    <div style={{ marginTop: '20px' }}>
+      <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink3)', marginBottom: '10px' }}>Code Evidence</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {evidence.map((e, i) => (
+          <div key={i} style={{ borderRadius: '8px', overflow: 'hidden', border: `1px solid ${e.type === 'ai' ? 'rgba(208,2,27,0.15)' : 'rgba(0,135,90,0.15)'}` }}>
+            <div style={{ background: e.type === 'ai' ? 'rgba(208,2,27,0.06)' : 'rgba(0,135,90,0.06)', padding: '5px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '10px', fontWeight: 700, color: e.type === 'ai' ? 'var(--red)' : 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                {e.type === 'ai' ? '◉ AI' : '◎ Human'}
+              </span>
+              <span style={{ fontSize: '11px', color: 'var(--ink3)' }}>{e.label}</span>
+            </div>
+            <div style={{ background: '#1A1A2E', padding: '10px 14px', overflowX: 'auto' }}>
+              <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: e.type === 'ai' ? '#FF6B6B' : '#69DB7C', whiteSpace: 'pre', display: 'block' }}>{e.snippet}</code>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
   const PageCard = ({ page }) => {
     const vc = getVC(page.verdict)
     if (page.error) return (
@@ -369,6 +391,13 @@ export default function App() {
                     <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink3)', marginBottom: '10px' }}>Analysis</div>
                     <p style={{ fontSize: '14px', color: 'var(--ink2)', lineHeight: 1.7, marginBottom: '0' }}>{result.reasoning}</p>
                     {result.signals && <SignalGrid signals={result.signals} />}
+                    {result.evidence && <EvidenceBlock evidence={result.evidence} />}
+```
+
+**Inside PageCard** — Ctrl+F for:
+```
+{page.signals && <SignalGrid signals={page.signals} compact />}
+{page.evidence && <EvidenceBlock evidence={page.evidence} />}
                     {result.filesAnalyzed > 0 && <div style={{ marginTop: '14px', fontSize: '11px', color: 'var(--ink3)', fontFamily: 'JetBrains Mono' }}>↳ {result.filesAnalyzed} file{result.filesAnalyzed > 1 ? 's' : ''} analyzed</div>}
                     <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)', fontSize: '11px', color: 'var(--ink3)', fontFamily: 'JetBrains Mono', wordBreak: 'break-all' }}>scanned: {result.url}</div>
                   </div>
