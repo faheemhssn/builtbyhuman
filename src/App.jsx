@@ -11,6 +11,7 @@ export default function App() {
   const [error, setError] = useState(null)
   const [scansUsed, setScansUsed] = useState(0)
   const [scanLimit, setScanLimit] = useState(3)
+  const [resetDate, setResetDate] = useState(null)
   const [scanMode, setScanMode] = useState('single') // 'single' or 'site'
 
   useEffect(() => {
@@ -34,6 +35,7 @@ export default function App() {
       if (userData) {
         setScanLimit(userData.scan_limit)
         setScansUsed(userData.scans_used)
+        setResetDate(userData.reset_date)
       }
     }
     fetchUserData()
@@ -265,7 +267,8 @@ export default function App() {
               }} />
             ))}
             <span style={{ fontSize: '13px', color: '#64748b', marginLeft: '8px' }}>
-              {scanLimit - scansUsed} scan{scanLimit - scansUsed !== 1 ? 's' : ''} remaining this month
+              {scanLimit - scansUsed} scan{scanLimit - scansUsed !== 1 ? 's' : ''} remaining
+              {resetDate && ` · Resets ${new Date(resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
             </span>
           </div>
 
