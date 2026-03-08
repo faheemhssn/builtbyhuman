@@ -66,11 +66,28 @@ export default async function handler(req, res) {
       userData = newUser
     }
 
-    if (userData && userData.scans_used >= userData.scan_limit) {
-      return res.status(403).json({ 
-        error: 'Monthly limit reached',
-        limitReached: true
-      })
+    // Check if reset_date has passed and reset if so
+    if (userData) {
+      const today = new Date().toISOString().split('T')[0]
+      if (userData.reset_date && today >= userData.reset_date) {
+        const newResetDate = new Date()
+        newResetDate.setMonth(newResetDate.getMonth() + 1)
+        await supabase
+          .from('users')
+          .update({ 
+            scans_used: 0, 
+            reset_date: newResetDate.toISOString().split('T')[0] 
+          })
+          .eq('user_id', userId)
+        userData.scans_used = 0
+      }
+
+      if (userData.scans_used >= userData.scan_limit) {
+        return res.status(403).json({ 
+          error: 'Monthly limit reached',
+          limitReached: true
+        })
+      }
     }
   }
 
@@ -101,7 +118,7 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 1024,
         messages: [{
           role: 'user',
