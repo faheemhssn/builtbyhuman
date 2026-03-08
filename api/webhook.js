@@ -2,14 +2,9 @@ import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-)
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY)
 
-export const config = {
-  api: { bodyParser: false }
-}
+export const config = { api: { bodyParser: false } }
 
 async function getRawBody(req) {
   return new Promise((resolve, reject) => {
@@ -35,25 +30,21 @@ export default async function handler(req, res) {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object
-    console.log('Session metadata:', JSON.stringify(session.metadata))
-    console.log('Session customer:', session.customer)
     const userId = session.metadata?.userId
+    const plan = session.metadata?.plan
+    const scanLimit = plan === 'educator' ? 99999 : 50
 
     if (userId) {
       const resetDate = new Date()
       resetDate.setMonth(resetDate.getMonth() + 1)
 
-      const { error } = await supabase.from('users').upsert({
+      await supabase.from('users').upsert({
         user_id: userId,
         is_pro: true,
-        scan_limit: 50,
+        scan_limit: scanLimit,
         scans_used: 0,
         reset_date: resetDate.toISOString().split('T')[0]
       }, { onConflict: 'user_id' })
-      
-      console.log('Upsert error:', error)
-    } else {
-      console.log('No userId found in metadata!')
     }
   }
 

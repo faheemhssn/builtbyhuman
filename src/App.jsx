@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 import ScanHistory from './ScanHistory'
+import Educators from './Educators'
 import { SignedIn, SignedOut, SignInButton, UserButton, useUser } from '@clerk/clerk-react'
 
 const FONTS = `
@@ -8,7 +9,6 @@ const FONTS = `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
     --bg: #F9F8F6;
-    --bg2: #FFFFFF;
     --ink: #0E0E12;
     --ink2: #3D3D4E;
     --ink3: #8A8A9A;
@@ -21,6 +21,7 @@ const FONTS = `
     --amber-dim: #FFF7E6;
     --red: #D0021B;
     --red-dim: #FFF0F0;
+    --purple-mid: #7C3AED;
     --radius: 12px;
     --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
     --shadow-lg: 0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
@@ -133,6 +134,9 @@ export default function App() {
     setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000)
   }
 
+  // ROUTE: Educators page
+  if (window.location.pathname === '/educators') return <Educators />
+
   const ScoreDisplay = ({ score, verdict, size = 'lg', cached = false, confidence }) => {
     const vc = getVC(verdict)
     const fontSize = size === 'lg' ? '64px' : size === 'md' ? '40px' : '28px'
@@ -176,29 +180,31 @@ export default function App() {
       </div>
     </div>
   )
+
   const EvidenceBlock = ({ evidence }) => {
-  if (!evidence || evidence.length === 0) return null
-  return (
-    <div style={{ marginTop: '20px' }}>
-      <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink3)', marginBottom: '10px' }}>Code Evidence</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {evidence.map((e, i) => (
-          <div key={i} style={{ borderRadius: '8px', overflow: 'hidden', border: `1px solid ${e.type === 'ai' ? 'rgba(208,2,27,0.15)' : 'rgba(0,135,90,0.15)'}` }}>
-            <div style={{ background: e.type === 'ai' ? 'rgba(208,2,27,0.06)' : 'rgba(0,135,90,0.06)', padding: '5px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '10px', fontWeight: 700, color: e.type === 'ai' ? 'var(--red)' : 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                {e.type === 'ai' ? '◉ AI' : '◎ Human'}
-              </span>
-              <span style={{ fontSize: '11px', color: 'var(--ink3)' }}>{e.label}</span>
+    if (!evidence || evidence.length === 0) return null
+    return (
+      <div style={{ marginTop: '20px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink3)', marginBottom: '10px' }}>Code Evidence</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {evidence.map((e, i) => (
+            <div key={i} style={{ borderRadius: '8px', overflow: 'hidden', border: `1px solid ${e.type === 'ai' ? 'rgba(208,2,27,0.15)' : 'rgba(0,135,90,0.15)'}` }}>
+              <div style={{ background: e.type === 'ai' ? 'rgba(208,2,27,0.06)' : 'rgba(0,135,90,0.06)', padding: '5px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: e.type === 'ai' ? 'var(--red)' : 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  {e.type === 'ai' ? '◉ AI' : '◎ Human'}
+                </span>
+                <span style={{ fontSize: '11px', color: 'var(--ink3)' }}>{e.label}</span>
+              </div>
+              <div style={{ background: '#1A1A2E', padding: '10px 14px', overflowX: 'auto' }}>
+                <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: e.type === 'ai' ? '#FF6B6B' : '#69DB7C', whiteSpace: 'pre', display: 'block' }}>{e.snippet}</code>
+              </div>
             </div>
-            <div style={{ background: '#1A1A2E', padding: '10px 14px', overflowX: 'auto' }}>
-              <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: e.type === 'ai' ? '#FF6B6B' : '#69DB7C', whiteSpace: 'pre', display: 'block' }}>{e.snippet}</code>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </div>
-  )
-}
+    )
+  }
+
   const PageCard = ({ page }) => {
     const vc = getVC(page.verdict)
     if (page.error) return (
@@ -218,6 +224,7 @@ export default function App() {
         </div>
         <p style={{ fontSize: '13px', color: 'var(--ink2)', lineHeight: 1.6, marginBottom: '12px' }}>{page.reasoning}</p>
         {page.signals && <SignalGrid signals={page.signals} compact />}
+        {page.evidence && <EvidenceBlock evidence={page.evidence} />}
         {page.filesAnalyzed > 0 && <div style={{ marginTop: '10px', fontSize: '11px', color: 'var(--ink3)', fontFamily: 'JetBrains Mono' }}>↳ {page.filesAnalyzed} file{page.filesAnalyzed > 1 ? 's' : ''} analyzed</div>}
       </div>
     )
@@ -250,7 +257,7 @@ export default function App() {
           </button>
         ))}
         <span style={{ fontSize: '12px', color: 'var(--ink3)', marginLeft: '4px' }}>
-          {scanLimit - scansUsed} scan{scanLimit - scansUsed !== 1 ? 's' : ''} remaining
+          {scanLimit - scansUsed < 0 ? 0 : scanLimit - scansUsed} scan{(scanLimit - scansUsed) !== 1 ? 's' : ''} remaining
           {resetDate && ` · resets ${new Date(resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
         </span>
       </div>
@@ -259,6 +266,7 @@ export default function App() {
 
   // SHARED REPORT VIEW
   if (sharedReport) {
+    const vc = getVC(sharedReport.verdict)
     return (
       <>
         <style>{FONTS}</style>
@@ -292,10 +300,11 @@ export default function App() {
               <div className="card fade-up-3" style={{ padding: '28px' }}>
                 <p style={{ fontSize: '14px', color: 'var(--ink2)', lineHeight: 1.7, marginBottom: '16px' }}>{sharedReport.report?.reasoning}</p>
                 {sharedReport.report?.signals && <SignalGrid signals={sharedReport.report.signals} />}
+                {sharedReport.report?.evidence && <EvidenceBlock evidence={sharedReport.report.evidence} />}
               </div>
             )}
             <div className="card fade-up-4" style={{ padding: '28px', marginTop: '24px', textAlign: 'center' }}>
-              <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--ink)', marginBottom: '6px' }}>Verify any website yourself</div>
+              <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '6px' }}>Verify any website yourself</div>
               <div style={{ fontSize: '13px', color: 'var(--ink3)', marginBottom: '20px' }}>Free · No credit card · 3 scans/month</div>
               <button className="btn-primary" onClick={() => window.location.href = '/'}>Try BuiltByHuman Free →</button>
             </div>
@@ -316,6 +325,7 @@ export default function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
             <button className="nav-link" onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}>Features</button>
             <button className="nav-link" onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}>Pricing</button>
+            <a href="/educators" className="nav-link" style={{ color: 'var(--purple-mid)', fontWeight: 600 }}>For Educators</a>
             <SignedOut>
               <SignInButton mode="modal"><button className="btn-secondary" style={{ padding: '8px 18px', fontSize: '14px' }}>Sign in</button></SignInButton>
               <SignInButton mode="modal"><button className="btn-primary" style={{ padding: '9px 18px', fontSize: '14px' }}>Get Started Free</button></SignInButton>
@@ -389,15 +399,9 @@ export default function App() {
                       )}
                     </div>
                     <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink3)', marginBottom: '10px' }}>Analysis</div>
-                    <p style={{ fontSize: '14px', color: 'var(--ink2)', lineHeight: 1.7, marginBottom: '0' }}>{result.reasoning}</p>
+                    <p style={{ fontSize: '14px', color: 'var(--ink2)', lineHeight: 1.7 }}>{result.reasoning}</p>
                     {result.signals && <SignalGrid signals={result.signals} />}
                     {result.evidence && <EvidenceBlock evidence={result.evidence} />}
-```
-
-**Inside PageCard** — Ctrl+F for:
-```
-{page.signals && <SignalGrid signals={page.signals} compact />}
-{page.evidence && <EvidenceBlock evidence={page.evidence} />}
                     {result.filesAnalyzed > 0 && <div style={{ marginTop: '14px', fontSize: '11px', color: 'var(--ink3)', fontFamily: 'JetBrains Mono' }}>↳ {result.filesAnalyzed} file{result.filesAnalyzed > 1 ? 's' : ''} analyzed</div>}
                     <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border)', fontSize: '11px', color: 'var(--ink3)', fontFamily: 'JetBrains Mono', wordBreak: 'break-all' }}>scanned: {result.url}</div>
                   </div>
@@ -514,12 +518,20 @@ export default function App() {
               </div>
             ))}
           </div>
+          <div style={{ textAlign: 'center', marginTop: '24px' }}>
+            <a href="/educators" style={{ fontSize: '14px', color: 'var(--purple-mid)', fontWeight: 600, textDecoration: 'none' }}>
+              🎓 Looking for the Educator plan? →
+            </a>
+          </div>
         </section>
 
         {/* FOOTER */}
         <footer style={{ borderTop: '1px solid var(--border)', background: 'white', padding: '28px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <span style={{ fontSize: '16px', fontWeight: 800, letterSpacing: '-0.03em' }}>BuiltBy<span style={{ color: 'var(--blue)' }}>Human</span></span>
-          <span style={{ fontSize: '12px', color: 'var(--ink3)' }}>AI Authorship Detection · {new Date().getFullYear()}</span>
+          <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+            <a href="/educators" style={{ fontSize: '13px', color: 'var(--ink3)', textDecoration: 'none' }}>For Educators</a>
+            <span style={{ fontSize: '12px', color: 'var(--ink3)' }}>AI Authorship Detection · {new Date().getFullYear()}</span>
+          </div>
         </footer>
 
       </div>
