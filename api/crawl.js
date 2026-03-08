@@ -232,7 +232,28 @@ export default async function handler(req, res) {
       }
     }
   }
+// Check cache
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const { data: cachedScan } = await supabase
+    .from('scans')
+    .select('*')
+    .eq('url', url)
+    .gte('created_at', twentyFourHoursAgo)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
 
+  if (cachedScan) {
+    return res.status(200).json({
+      id: cachedScan.id,
+      url: cachedScan.url,
+      overallScore: cachedScan.score,
+      verdict: cachedScan.verdict,
+      pagesScanned: cachedScan.report?.pages?.length || 1,
+      pages: cachedScan.report?.pages || [],
+      cached: true
+    })
+  }
   try {
     // Fetch homepage and extract internal links
     const homepageRes = await fetch(url, {

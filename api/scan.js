@@ -90,7 +90,29 @@ export default async function handler(req, res) {
       }
     }
   }
+// Check cache — return existing scan if same URL scanned in last 24 hours
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const { data: cachedScan } = await supabase
+    .from('scans')
+    .select('*')
+    .eq('url', url)
+    .gte('created_at', twentyFourHoursAgo)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
 
+  if (cachedScan) {
+    return res.status(200).json({
+      id: cachedScan.id,
+      url: cachedScan.url,
+      score: cachedScan.score,
+      verdict: cachedScan.verdict,
+      reasoning: cachedScan.report?.reasoning,
+      signals: cachedScan.report?.signals,
+      filesAnalyzed: cachedScan.report?.filesAnalyzed || 0,
+      cached: true
+    })
+  }
   try {
     const pageRes = await fetch(url, { 
       headers: { 'User-Agent': 'Mozilla/5.0' },
