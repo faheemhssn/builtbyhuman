@@ -11,32 +11,33 @@ export default function App() {
   const [error, setError] = useState(null)
   const [scansUsed, setScansUsed] = useState(0)
   const [scanLimit, setScanLimit] = useState(3)
+  const [scanMode, setScanMode] = useState('single') // 'single' or 'site'
 
-useEffect(() => {
-  if (!user) return
-  async function fetchUserData() {
-    let { data: userData } = await supabase
-      .from('users')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
-
-    if (!userData) {
-      const { data: newUser } = await supabase
+  useEffect(() => {
+    if (!user) return
+    async function fetchUserData() {
+      let { data: userData } = await supabase
         .from('users')
-        .insert({ user_id: user.id, scan_limit: 3, scans_used: 0 })
-        .select()
+        .select('*')
+        .eq('user_id', user.id)
         .single()
-      userData = newUser
-    }
 
-    if (userData) {
-      setScanLimit(userData.scan_limit)
-      setScansUsed(userData.scans_used)
+      if (!userData) {
+        const { data: newUser } = await supabase
+          .from('users')
+          .insert({ user_id: user.id, scan_limit: 3, scans_used: 0 })
+          .select()
+          .single()
+        userData = newUser
+      }
+
+      if (userData) {
+        setScanLimit(userData.scan_limit)
+        setScansUsed(userData.scans_used)
+      }
     }
-  }
-  fetchUserData()
-}, [user])
+    fetchUserData()
+  }, [user])
 
   const handleScan = async () => {
     if (!url) return
@@ -44,8 +45,10 @@ useEffect(() => {
     setResult(null)
     setError(null)
 
+    const endpoint = scanMode === 'site' ? '/api/crawl' : '/api/scan'
+
     try {
-      const res = await fetch('/api/scan', {
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url, userId: user?.id })
@@ -57,7 +60,7 @@ useEffect(() => {
         }
         throw new Error(data.error || 'Scan failed')
       }
-      setResult(data)
+      setResult({ ...data, mode: scanMode })
       setScansUsed(prev => prev + 1)
     } catch (err) {
       setError(err.message)
@@ -65,15 +68,15 @@ useEffect(() => {
       setLoading(false)
     }
   }
-  
+
   const handleUpgrade = async () => {
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          userId: user?.id, 
-          email: user?.primaryEmailAddress?.emailAddress 
+        body: JSON.stringify({
+          userId: user?.id,
+          email: user?.primaryEmailAddress?.emailAddress
         })
       })
       const data = await res.json()
@@ -100,9 +103,132 @@ useEffect(() => {
     return labels[verdict] || verdict
   }
 
+  const renderSingleResult = (result) => (
+    <div style={{ marginTop: '40px', background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: '32px', textAlign: 'left' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <div>
+          <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px' }}>AI Authorship Score</div>
+          <div style={{ fontSize: '56px', fontWeight: '800', color: getVerdictColor(result.verdict), lineHeight: 1 }}>
+            {result.score}%
+          </div>
+        </div>
+        <div style={{ background: '#0f172a', borderRadius: '12px', padding: '12px 20px', textAlign: 'center' }}>
+          <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px' }}>Verdict</div>
+          <div style={{ fontWeight: '700', color: getVerdictColor(result.verdict) }}>
+            {getVerdictLabel(result.verdict)}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ background: '#0f172a', borderRadius: '8px', padding: '16px' }}>
+        <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Analysis</div>
+        <p style={{ color: '#cbd5e1', margin: '0 0 16px', lineHeight: '1.6' }}>{result.reasoning}</p>
+
+        {result.signals && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <div style={{ fontSize: '11px', color: '#ef4444', marginBottom: '6px', fontWeight: '600' }}>🤖 AI Signals</div>
+              {result.signals.ai_indicators?.map((s, i) => (
+                <div key={i} style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>• {s}</div>
+              ))}
+            </div>
+            <div>
+              <div style={{ fontSize: '11px', color: '#22c55e', marginBottom: '6px', fontWeight: '600' }}>👤 Human Signals</div>
+              {result.signals.human_indicators?.map((s, i) => (
+                <div key={i} style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>• {s}</div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {result.filesAnalyzed > 0 && (
+          <div style={{ marginTop: '12px', fontSize: '11px', color: '#475569' }}>
+            📁 {result.filesAnalyzed} file{result.filesAnalyzed > 1 ? 's' : ''} analyzed
+          </div>
+        )}
+      </div>
+
+      <div style={{ marginTop: '16px', fontSize: '12px', color: '#475569', wordBreak: 'break-all' }}>
+        Scanned: {result.url}
+      </div>
+    </div>
+  )
+
+  const renderSiteResult = (result) => (
+    <div style={{ marginTop: '40px', textAlign: 'left' }}>
+      {/* Overall Score */}
+      <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: '32px', marginBottom: '16px' }}>
+        <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '8px' }}>Site-Wide AI Authorship Score</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: '64px', fontWeight: '800', color: getVerdictColor(result.verdict), lineHeight: 1 }}>
+            {result.overallScore}%
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontWeight: '700', fontSize: '18px', color: getVerdictColor(result.verdict) }}>
+              {getVerdictLabel(result.verdict)}
+            </div>
+            <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>
+              {result.pagesScanned} page{result.pagesScanned !== 1 ? 's' : ''} scanned
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Per-page breakdown */}
+      <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        Page Breakdown
+      </div>
+      {result.pages?.map((page, i) => (
+        <div key={i} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '20px', marginBottom: '12px' }}>
+          {page.error ? (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: '13px', color: '#94a3b8', wordBreak: 'break-all', flex: 1 }}>{page.url}</div>
+              <div style={{ fontSize: '12px', color: '#ef4444', marginLeft: '12px' }}>Failed to scan</div>
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <div style={{ fontSize: '13px', color: '#94a3b8', wordBreak: 'break-all', flex: 1, marginRight: '12px' }}>{page.url}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                  <div style={{ fontSize: '24px', fontWeight: '800', color: getVerdictColor(page.verdict) }}>
+                    {page.score}%
+                  </div>
+                  <div style={{ fontSize: '12px', fontWeight: '600', color: getVerdictColor(page.verdict) }}>
+                    {getVerdictLabel(page.verdict)}
+                  </div>
+                </div>
+              </div>
+              <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 12px', lineHeight: '1.5' }}>{page.reasoning}</p>
+              {page.signals && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#ef4444', marginBottom: '4px', fontWeight: '600' }}>🤖 AI Signals</div>
+                    {page.signals.ai_indicators?.slice(0, 3).map((s, j) => (
+                      <div key={j} style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '3px' }}>• {s}</div>
+                    ))}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#22c55e', marginBottom: '4px', fontWeight: '600' }}>👤 Human Signals</div>
+                    {page.signals.human_indicators?.slice(0, 3).map((s, j) => (
+                      <div key={j} style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '3px' }}>• {s}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {page.filesAnalyzed > 0 && (
+                <div style={{ marginTop: '8px', fontSize: '11px', color: '#475569' }}>
+                  📁 {page.filesAnalyzed} file{page.filesAnalyzed > 1 ? 's' : ''} analyzed
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+
   return (
     <div style={{ minHeight: '100vh', background: '#0f172a', color: '#e2e8f0', fontFamily: 'system-ui, sans-serif' }}>
-
       <header style={{ padding: '16px 32px', borderBottom: '1px solid #1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#60a5fa' }}>BuiltByHuman</div>
         <div>
@@ -125,7 +251,7 @@ useEffect(() => {
           Was this site built by a human?
         </h1>
         <p style={{ fontSize: '18px', color: '#94a3b8', marginBottom: '48px', lineHeight: '1.6' }}>
-          Stop Paying Human Prices for AI-Generated Work. Instantly audit any URL to uncover hidden AI authorship signals. 
+          Stop Paying Human Prices for AI-Generated Work. Instantly audit any URL to uncover hidden AI authorship signals.
           Whether you're vetting a freelancer's portfolio or verifying a final delivery, get the data you need to pay with confidence.
         </p>
 
@@ -143,6 +269,40 @@ useEffect(() => {
             </span>
           </div>
 
+          {/* Scan Mode Toggle */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '16px' }}>
+            <button
+              onClick={() => setScanMode('single')}
+              style={{
+                padding: '8px 20px', borderRadius: '8px', border: '1px solid',
+                borderColor: scanMode === 'single' ? '#2563eb' : '#334155',
+                background: scanMode === 'single' ? '#2563eb' : 'transparent',
+                color: scanMode === 'single' ? 'white' : '#94a3b8',
+                cursor: 'pointer', fontWeight: '600', fontSize: '13px'
+              }}
+            >
+              Single Page
+            </button>
+            <button
+              onClick={() => setScanMode('site')}
+              style={{
+                padding: '8px 20px', borderRadius: '8px', border: '1px solid',
+                borderColor: scanMode === 'site' ? '#2563eb' : '#334155',
+                background: scanMode === 'site' ? '#2563eb' : 'transparent',
+                color: scanMode === 'site' ? 'white' : '#94a3b8',
+                cursor: 'pointer', fontWeight: '600', fontSize: '13px'
+              }}
+            >
+              🌐 Scan Entire Site
+            </button>
+          </div>
+
+          {scanMode === 'site' && (
+            <div style={{ marginBottom: '16px', fontSize: '13px', color: '#64748b', background: '#1e293b', borderRadius: '8px', padding: '10px 16px' }}>
+              Scans up to 5 pages across the site and returns an overall AI authorship score. Counts as 1 scan.
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: '12px', maxWidth: '600px', margin: '0 auto' }}>
             <input
               type="url"
@@ -157,7 +317,7 @@ useEffect(() => {
               disabled={loading || !url}
               style={{ padding: '14px 28px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '10px', fontWeight: '700', fontSize: '16px', cursor: loading ? 'not-allowed' : 'pointer' }}
             >
-              {loading ? 'Scanning...' : 'Scan URL'}
+              {loading ? (scanMode === 'site' ? 'Crawling...' : 'Scanning...') : 'Scan URL'}
             </button>
           </div>
 
@@ -184,56 +344,7 @@ useEffect(() => {
             </div>
           )}
 
-          {result && (
-            <div style={{ marginTop: '40px', background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: '32px', textAlign: 'left' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <div>
-                  <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px' }}>AI Authorship Score</div>
-                  <div style={{ fontSize: '56px', fontWeight: '800', color: getVerdictColor(result.verdict), lineHeight: 1 }}>
-                    {result.score}%
-                  </div>
-                </div>
-                <div style={{ background: '#0f172a', borderRadius: '12px', padding: '12px 20px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px' }}>Verdict</div>
-                  <div style={{ fontWeight: '700', color: getVerdictColor(result.verdict) }}>
-                    {getVerdictLabel(result.verdict)}
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ background: '#0f172a', borderRadius: '8px', padding: '16px' }}>
-                <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Analysis</div>
-                <p style={{ color: '#cbd5e1', margin: '0 0 16px', lineHeight: '1.6' }}>{result.reasoning}</p>
-                
-                {result.signals && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div>
-                      <div style={{ fontSize: '11px', color: '#ef4444', marginBottom: '6px', fontWeight: '600' }}>🤖 AI Signals</div>
-                      {result.signals.ai_indicators?.map((s, i) => (
-                        <div key={i} style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>• {s}</div>
-                      ))}
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '11px', color: '#22c55e', marginBottom: '6px', fontWeight: '600' }}>👤 Human Signals</div>
-                      {result.signals.human_indicators?.map((s, i) => (
-                        <div key={i} style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>• {s}</div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {result.filesAnalyzed > 0 && (
-                  <div style={{ marginTop: '12px', fontSize: '11px', color: '#475569' }}>
-                    📁 {result.filesAnalyzed} JS file{result.filesAnalyzed > 1 ? 's' : ''} analyzed
-                  </div>
-                )}
-              </div>
-
-              <div style={{ marginTop: '16px', fontSize: '12px', color: '#475569', wordBreak: 'break-all' }}>
-                Scanned: {result.url}
-              </div>
-            </div>
-          )}
+          {result && (result.mode === 'site' ? renderSiteResult(result) : renderSingleResult(result))}
 
           <ScanHistory />
         </SignedIn>
