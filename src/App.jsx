@@ -133,17 +133,29 @@ export default function App() {
     setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000)
   }
 
-  const ScoreDisplay = ({ score, verdict, size = 'lg' }) => {
+  const ScoreDisplay = ({ score, verdict, size = 'lg', cached = false, confidence }) => {
     const vc = getVC(verdict)
     const fontSize = size === 'lg' ? '64px' : size === 'md' ? '40px' : '28px'
+    const margin = score <= 5 ? 5 : score >= 95 ? 5 : 10
     return (
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap' }}>
-        <span className="mono" style={{ fontSize, fontWeight: 700, color: vc.color, lineHeight: 1, letterSpacing: '-0.03em' }}>
-          {score}<span style={{ fontSize: '0.45em', opacity: 0.7 }}>%</span>
-        </span>
-        <span style={{ background: vc.bg, color: vc.color, padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, letterSpacing: '0.02em' }}>
-          {vc.icon} {vc.label}
-        </span>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap' }}>
+          <span className="mono" style={{ fontSize, fontWeight: 700, color: vc.color, lineHeight: 1, letterSpacing: '-0.03em' }}>
+            {score}<span style={{ fontSize: '0.45em', opacity: 0.7 }}>%</span>
+          </span>
+          <span style={{ background: vc.bg, color: vc.color, padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, letterSpacing: '0.02em' }}>
+            {vc.icon} {vc.label}
+          </span>
+          {cached && (
+            <span style={{ background: 'var(--blue-dim)', color: 'var(--blue)', padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600 }}>
+              ⚡ Cached
+            </span>
+          )}
+        </div>
+        <div style={{ fontSize: '12px', color: 'var(--ink3)', marginTop: '6px', fontFamily: 'JetBrains Mono' }}>
+          Confidence range: {Math.max(0, score - margin)}–{Math.min(100, score + margin)}%
+          {confidence && ` · ${confidence} confidence`}
+        </div>
       </div>
     )
   }
@@ -244,7 +256,7 @@ export default function App() {
               <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink3)', marginBottom: '16px' }}>
                 {sharedReport.report?.pages ? 'Site-Wide Score' : 'AI Authorship Score'}
               </div>
-              <ScoreDisplay score={sharedReport.score} verdict={sharedReport.verdict} />
+              <ScoreDisplay score={sharedReport.score} verdict={sharedReport.verdict} cached={false} />
               {sharedReport.report?.pages && (
                 <div style={{ fontSize: '13px', color: 'var(--ink3)', marginTop: '8px' }}>{sharedReport.report.pages.length} pages analyzed</div>
               )}
@@ -329,7 +341,7 @@ export default function App() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                         <div>
                           <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink3)', marginBottom: '10px' }}>Site-Wide Score · {result.pagesScanned} pages</div>
-                          <ScoreDisplay score={result.overallScore} verdict={result.verdict} />
+                          <ScoreDisplay score={result.overallScore} verdict={result.verdict} cached={result.cached} />
                         </div>
                         {reportId && (
                           <button onClick={copyLink} style={{ background: linkCopied ? 'var(--green-dim)' : 'var(--blue-dim)', color: linkCopied ? 'var(--green)' : 'var(--blue)', border: 'none', borderRadius: '8px', padding: '10px 18px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Outfit, sans-serif', transition: 'all 0.2s' }}>
@@ -346,7 +358,7 @@ export default function App() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', paddingBottom: '24px', marginBottom: '24px', borderBottom: '1px solid var(--border)' }}>
                       <div>
                         <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink3)', marginBottom: '10px' }}>AI Authorship Score</div>
-                        <ScoreDisplay score={result.score} verdict={result.verdict} />
+                        <ScoreDisplay score={result.score} verdict={result.verdict} cached={result.cached} confidence={result.confidence} />
                       </div>
                       {reportId && (
                         <button onClick={copyLink} style={{ background: linkCopied ? 'var(--green-dim)' : 'var(--blue-dim)', color: linkCopied ? 'var(--green)' : 'var(--blue)', border: 'none', borderRadius: '8px', padding: '10px 18px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Outfit, sans-serif', transition: 'all 0.2s' }}>
