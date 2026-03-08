@@ -13,6 +13,9 @@ export default function App() {
   const [scanLimit, setScanLimit] = useState(3)
   const [resetDate, setResetDate] = useState(null)
   const [scanMode, setScanMode] = useState('single') // 'single' or 'site'
+  const [reportId, setReportId] = useState(null)
+const [sharedReport, setSharedReport] = useState(null)
+const [linkCopied, setLinkCopied] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -41,6 +44,22 @@ export default function App() {
     fetchUserData()
   }, [user])
 
+  useEffect(() => {   // ← add the new one right here
+    const params = new URLSearchParams(window.location.search)
+    const report = params.get('report')
+    if (report) {
+      async function fetchReport() {
+        const { data } = await supabase
+          .from('scans')
+          .select('*')
+          .eq('id', report)
+          .single()
+        if (data) setSharedReport(data)
+      }
+      fetchReport()
+    }
+  }, [])
+
   const handleScan = async () => {
     if (!url) return
     setLoading(true)
@@ -64,6 +83,7 @@ export default function App() {
       }
       setResult({ ...data, mode: scanMode })
       setScansUsed(prev => prev + 1)
+      setReportId(data.id || null)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -150,8 +170,22 @@ export default function App() {
         )}
       </div>
 
-      <div style={{ marginTop: '16px', fontSize: '12px', color: '#475569', wordBreak: 'break-all' }}>
-        Scanned: {result.url}
+      <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontSize: '12px', color: '#475569', wordBreak: 'break-all' }}>
+          Scanned: {result.url}
+        </div>
+        {reportId && (
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(`${window.location.origin}/?report=${reportId}`)
+              setLinkCopied(true)
+              setTimeout(() => setLinkCopied(false), 2000)
+            }}
+            style={{ background: linkCopied ? '#16a34a' : '#1e293b', color: linkCopied ? 'white' : '#60a5fa', border: '1px solid', borderColor: linkCopied ? '#16a34a' : '#2563eb', borderRadius: '8px', padding: '8px 16px', fontSize: '12px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap', marginLeft: '12px' }}
+          >
+            {linkCopied ? '✓ Copied!' : '🔗 Share Report'}
+          </button>
+        )}
       </div>
     </div>
   )
@@ -177,6 +211,20 @@ export default function App() {
       </div>
 
       {/* Per-page breakdown */}
+      {reportId && (
+        <div style={{ textAlign: 'right', marginBottom: '16px' }}>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(`${window.location.origin}/?report=${reportId}`)
+              setLinkCopied(true)
+              setTimeout(() => setLinkCopied(false), 2000)
+            }}
+            style={{ background: linkCopied ? '#16a34a' : '#1e293b', color: linkCopied ? 'white' : '#60a5fa', border: '1px solid', borderColor: linkCopied ? '#16a34a' : '#2563eb', borderRadius: '8px', padding: '8px 16px', fontSize: '12px', cursor: 'pointer', fontWeight: '600' }}
+          >
+            {linkCopied ? '✓ Copied!' : '🔗 Share Report'}
+          </button>
+        </div>
+      )}
       <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
         Page Breakdown
       </div>
@@ -230,7 +278,123 @@ export default function App() {
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f172a', color: '#e2e8f0', fontFamily: 'system-ui, sans-serif' }}>
+    <div {sharedReport && (
+        <div style={{ minHeight: '100vh', background: '#0f172a', color: '#e2e8f0', fontFamily: 'system-ui, sans-serif' }}>
+          <header style={{ padding: '16px 32px', borderBottom: '1px solid #1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#60a5fa' }}>BuiltByHuman</div>
+            <div style={{ fontSize: '12px', color: '#475569' }}>Verified AI Authorship Report</div>
+          </header>
+          <main style={{ maxWidth: '720px', margin: '0 auto', padding: '60px 24px' }}>
+            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '8px' }}>
+              {new Date(sharedReport.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </div>
+            <div style={{ fontSize: '13px', color: '#475569', marginBottom: '32px', wordBreak: 'break-all' }}>
+              🔗 {sharedReport.url}
+            </div>
+
+            {sharedReport.report?.pages ? (
+              <>
+                <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: '32px', marginBottom: '16px' }}>
+                  <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '8px' }}>Site-Wide AI Authorship Score</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: '64px', fontWeight: '800', color: getVerdictColor(sharedReport.verdict), lineHeight: 1 }}>
+                      {sharedReport.score}%
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontWeight: '700', fontSize: '18px', color: getVerdictColor(sharedReport.verdict) }}>
+                        {getVerdictLabel(sharedReport.verdict)}
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>
+                        {sharedReport.report.pages.length} page{sharedReport.report.pages.length !== 1 ? 's' : ''} scanned
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Page Breakdown</div>
+                {sharedReport.report.pages.map((page, i) => (
+                  <div key={i} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '20px', marginBottom: '12px' }}>
+                    {page.error ? (
+                      <div style={{ fontSize: '13px', color: '#94a3b8' }}>{page.url} — Failed to scan</div>
+                    ) : (
+                      <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                          <div style={{ fontSize: '13px', color: '#94a3b8', wordBreak: 'break-all', flex: 1, marginRight: '12px' }}>{page.url}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                            <div style={{ fontSize: '24px', fontWeight: '800', color: getVerdictColor(page.verdict) }}>{page.score}%</div>
+                            <div style={{ fontSize: '12px', fontWeight: '600', color: getVerdictColor(page.verdict) }}>{getVerdictLabel(page.verdict)}</div>
+                          </div>
+                        </div>
+                        <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 12px', lineHeight: '1.5' }}>{page.reasoning}</p>
+                        {page.signals && (
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                            <div>
+                              <div style={{ fontSize: '11px', color: '#ef4444', marginBottom: '4px', fontWeight: '600' }}>🤖 AI Signals</div>
+                              {page.signals.ai_indicators?.map((s, j) => (
+                                <div key={j} style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '3px' }}>• {s}</div>
+                              ))}
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '11px', color: '#22c55e', marginBottom: '4px', fontWeight: '600' }}>👤 Human Signals</div>
+                              {page.signals.human_indicators?.map((s, j) => (
+                                <div key={j} style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '3px' }}>• {s}</div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                ))}
+              </>
+            ) : (
+              <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: '32px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                  <div>
+                    <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px' }}>AI Authorship Score</div>
+                    <div style={{ fontSize: '56px', fontWeight: '800', color: getVerdictColor(sharedReport.verdict), lineHeight: 1 }}>
+                      {sharedReport.score}%
+                    </div>
+                  </div>
+                  <div style={{ background: '#0f172a', borderRadius: '12px', padding: '12px 20px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px' }}>Verdict</div>
+                    <div style={{ fontWeight: '700', color: getVerdictColor(sharedReport.verdict) }}>{getVerdictLabel(sharedReport.verdict)}</div>
+                  </div>
+                </div>
+                <div style={{ background: '#0f172a', borderRadius: '8px', padding: '16px' }}>
+                  <p style={{ color: '#cbd5e1', margin: '0 0 16px', lineHeight: '1.6' }}>{sharedReport.report?.reasoning}</p>
+                  {sharedReport.report?.signals && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div>
+                        <div style={{ fontSize: '11px', color: '#ef4444', marginBottom: '6px', fontWeight: '600' }}>🤖 AI Signals</div>
+                        {sharedReport.report.signals.ai_indicators?.map((s, i) => (
+                          <div key={i} style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>• {s}</div>
+                        ))}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '11px', color: '#22c55e', marginBottom: '6px', fontWeight: '600' }}>👤 Human Signals</div>
+                        {sharedReport.report.signals.human_indicators?.map((s, i) => (
+                          <div key={i} style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>• {s}</div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div style={{ marginTop: '40px', textAlign: 'center', padding: '24px', background: '#1e293b', borderRadius: '12px' }}>
+              <div style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '12px' }}>Want to verify a website yourself?</div>
+              <button
+                onClick={() => window.location.href = '/'}
+                style={{ background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', padding: '10px 24px', fontWeight: '700', cursor: 'pointer' }}
+              >
+                Try BuiltByHuman Free
+              </button>
+            </div>
+          </main>
+        </div>
+      )}
+    style={{ minHeight: '100vh', background: '#0f172a', color: '#e2e8f0', fontFamily: 'system-ui, sans-serif' }}>
       <header style={{ padding: '16px 32px', borderBottom: '1px solid #1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#60a5fa' }}>BuiltByHuman</div>
         <div>

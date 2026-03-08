@@ -179,7 +179,17 @@ ${codePayload}`
         .eq('user_id', userId)
     }
 
+    const { data: scanRecord } = await supabase
+      .from('scans')
+      .select('id')
+      .eq('url', url)
+      .eq('user_id', userId || null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
     return res.status(200).json({
+      id: scanRecord?.id,
       url,
       score: result.ai_probability,
       verdict: result.verdict,
