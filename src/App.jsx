@@ -30,6 +30,7 @@ const FONTS = `
   body { background: var(--bg); color: var(--ink); font-family: 'Outfit', sans-serif; }
   @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
   .fade-up { animation: fadeUp 0.6s ease forwards; }
   .fade-up-2 { animation: fadeUp 0.6s 0.1s ease both; }
   .fade-up-3 { animation: fadeUp 0.6s 0.2s ease both; }
@@ -54,7 +55,6 @@ const FONTS = `
     font-size: 15px; cursor: pointer; transition: all 0.15s ease; letter-spacing: -0.01em;
   }
   .btn-purple:hover { background: #6D28D9; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(124,58,237,0.3); }
-  .btn-purple:active { transform: translateY(0); }
   .card { background: white; border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
   .mono { font-family: 'JetBrains Mono', monospace; }
   .nav-link { font-size: 14px; color: var(--ink2); text-decoration: none; font-weight: 500; transition: color 0.15s; cursor: pointer; background: none; border: none; font-family: 'Outfit', sans-serif; }
@@ -65,7 +65,10 @@ const FONTS = `
   .pricing-card.featured { border-color: var(--blue); background: linear-gradient(135deg, #F0F5FF 0%, #FFFFFF 100%); box-shadow: 0 8px 40px rgba(26,108,255,0.12); }
   .pricing-card.educator { border-color: var(--purple-mid); background: linear-gradient(135deg, #F5F0FF 0%, #FFFFFF 100%); box-shadow: 0 8px 40px rgba(124,58,237,0.10); }
   .step-num { width: 36px; height: 36px; border-radius: 50%; background: var(--blue-dim); color: var(--blue); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; flex-shrink: 0; }
+  .guest-upsell { background: linear-gradient(135deg, #1A6CFF 0%, #7C3AED 100%); border-radius: 16px; padding: 32px; color: white; text-align: center; margin-top: 32px; }
 `
+
+const GUEST_SCAN_KEY = 'bbh_guest_scan_used'
 
 export default function App() {
   const { user } = useUser()
@@ -80,6 +83,13 @@ export default function App() {
   const [reportId, setReportId] = useState(null)
   const [sharedReport, setSharedReport] = useState(null)
   const [linkCopied, setLinkCopied] = useState(false)
+  const [guestScanUsed, setGuestScanUsed] = useState(false)
+
+  useEffect(() => {
+    // Check if guest already used their free scan
+    const used = localStorage.getItem(GUEST_SCAN_KEY)
+    if (used) setGuestScanUsed(true)
+  }, [])
 
   useEffect(() => {
     if (!user) return
@@ -115,18 +125,27 @@ export default function App() {
     }
   }, [])
 
-  const handleScan = async () => {
+  const handleScan = async (isGuest = false) => {
     if (!url) return
     setLoading(true); setResult(null); setError(null)
     const endpoint = scanMode === 'site' ? '/api/crawl' : '/api/scan'
     try {
-      const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url, userId: user?.id }) })
+      const body = isGuest
+        ? { url, guest: true }
+        : { url, userId: user?.id }
+      const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const data = await res.json()
       if (!res.ok) {
         if (data.limitReached) throw new Error(`You've used all ${scanLimit} scans this month. Upgrade to Pro for 50 scans.`)
         throw new Error(data.error || 'Scan failed')
       }
-      setResult({ ...data, mode: scanMode }); setScansUsed(prev => prev + 1); setReportId(data.id || null)
+      if (isGuest) {
+        localStorage.setItem(GUEST_SCAN_KEY, '1')
+        setGuestScanUsed(true)
+      } else {
+        setScansUsed(prev => prev + 1)
+      }
+      setResult({ ...data, mode: scanMode }); setReportId(data.id || null)
     } catch (err) { setError(err.message) }
     finally { setLoading(false) }
   }
@@ -247,7 +266,7 @@ export default function App() {
     )
   }
 
-  const ScanInput = () => (
+  const ScanInput = ({ isGuest = false }) => (
     <div style={{ width: '100%', maxWidth: '640px', margin: '0 auto' }}>
       <div style={{ display: 'flex', gap: '4px', background: 'white', border: '1.5px solid var(--border)', borderRadius: '12px', padding: '4px', boxShadow: '0 8px 32px rgba(0,0,0,0.10)' }}>
         <input
@@ -256,39 +275,72 @@ export default function App() {
           placeholder="https://freelancer-portfolio.com"
           value={url}
           onChange={e => setUrl(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleScan()}
+          onKeyDown={e => e.key === 'Enter' && handleScan(isGuest)}
           style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', padding: '12px 14px', fontSize: '15px', fontFamily: 'Outfit, sans-serif', color: 'var(--ink)' }}
         />
         <button
           className="btn-primary"
-          onClick={handleScan}
+          onClick={() => handleScan(isGuest)}
           disabled={loading || !url}
           style={{ borderRadius: '9px', padding: '12px 24px', whiteSpace: 'nowrap', minWidth: '130px' }}
         >
           {loading ? (
             <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
               <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
-              {scanMode === 'site' ? 'Crawling…' : 'Scanning…'}
+              Scanning…
             </span>
           ) : 'Scan URL →'}
         </button>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-        {['single', 'site'].map(mode => (
-          <button
-            key={mode}
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => setScanMode(mode)}
-            style={{ background: scanMode === mode ? 'var(--blue-dim)' : 'transparent', color: scanMode === mode ? 'var(--blue)' : 'var(--ink3)', border: '1px solid', borderColor: scanMode === mode ? 'rgba(26,108,255,0.2)' : 'transparent', borderRadius: '20px', padding: '5px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Outfit, sans-serif', transition: 'all 0.15s' }}
-          >
-            {mode === 'single' ? 'Single Page' : '🌐 Entire Site'}
-          </button>
-        ))}
-        <span style={{ fontSize: '12px', color: 'var(--ink3)', marginLeft: '4px' }}>
-          {Math.max(0, scanLimit - scansUsed)} scan{(scanLimit - scansUsed) !== 1 ? 's' : ''} remaining
-          {resetDate && ` · resets ${new Date(resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
-        </span>
+      {!isGuest && (
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {['single', 'site'].map(mode => (
+            <button
+              key={mode}
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => setScanMode(mode)}
+              style={{ background: scanMode === mode ? 'var(--blue-dim)' : 'transparent', color: scanMode === mode ? 'var(--blue)' : 'var(--ink3)', border: '1px solid', borderColor: scanMode === mode ? 'rgba(26,108,255,0.2)' : 'transparent', borderRadius: '20px', padding: '5px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Outfit, sans-serif', transition: 'all 0.15s' }}
+            >
+              {mode === 'single' ? 'Single Page' : '🌐 Entire Site'}
+            </button>
+          ))}
+          <span style={{ fontSize: '12px', color: 'var(--ink3)', marginLeft: '4px' }}>
+            {Math.max(0, scanLimit - scansUsed)} scan{(scanLimit - scansUsed) !== 1 ? 's' : ''} remaining
+            {resetDate && ` · resets ${new Date(resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+          </span>
+        </div>
+      )}
+      {isGuest && (
+        <p style={{ textAlign: 'center', fontSize: '12px', color: 'var(--ink3)', marginTop: '10px' }}>
+          1 free scan · No account needed · Sign up for 3/month free
+        </p>
+      )}
+    </div>
+  )
+
+  // Guest upsell shown after result or when scan limit reached
+  const GuestUpsell = () => (
+    <div className="guest-upsell" style={{ animation: 'fadeUp 0.5s ease' }}>
+      <div style={{ fontSize: '28px', marginBottom: '12px' }}>🎉</div>
+      <div style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.02em', marginBottom: '8px' }}>
+        Like what you see?
       </div>
+      <div style={{ fontSize: '15px', opacity: 0.9, lineHeight: 1.6, marginBottom: '24px', maxWidth: '400px', margin: '0 auto 24px' }}>
+        Sign up free and get 3 scans every month. No credit card required.
+      </div>
+      <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+        <SignInButton mode="modal">
+          <button style={{ background: 'white', color: 'var(--blue)', border: 'none', borderRadius: '8px', padding: '12px 28px', fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: '15px', cursor: 'pointer', transition: 'all 0.15s' }}>
+            Create Free Account →
+          </button>
+        </SignInButton>
+        <SignInButton mode="modal">
+          <button style={{ background: 'transparent', color: 'white', border: '1.5px solid rgba(255,255,255,0.4)', borderRadius: '8px', padding: '12px 24px', fontFamily: 'Outfit, sans-serif', fontWeight: 600, fontSize: '14px', cursor: 'pointer', transition: 'all 0.15s' }}>
+            Sign In
+          </button>
+        </SignInButton>
+      </div>
+      <p style={{ fontSize: '12px', opacity: 0.7, marginTop: '16px' }}>Free forever · No credit card · Cancel anytime</p>
     </div>
   )
 
@@ -373,8 +425,9 @@ export default function App() {
             The gold standard for academic integrity and professional trust. Whether you're an educator protecting the classroom or a student proving your original voice, BuiltByHuman.app provides deep AI authorship signal breakdowns for any URL in seconds.
           </p>
 
+          {/* SIGNED IN */}
           <SignedIn>
-            <div className="fade-up-4"><ScanInput /></div>
+            <div className="fade-up-4"><ScanInput isGuest={false} /></div>
 
             {error && (
               <div style={{ marginTop: '20px', background: 'var(--red-dim)', border: '1px solid rgba(208,2,27,0.2)', borderRadius: '10px', padding: '14px 20px', color: 'var(--red)', fontSize: '14px', maxWidth: '640px', margin: '20px auto 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
@@ -439,12 +492,69 @@ export default function App() {
             <div style={{ maxWidth: '760px', margin: '40px auto 0' }}><ScanHistory /></div>
           </SignedIn>
 
+          {/* SIGNED OUT — GUEST SCAN */}
           <SignedOut>
-            <div className="fade-up-4" style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <SignInButton mode="modal"><button className="btn-primary" style={{ padding: '14px 32px', fontSize: '16px' }}>Start Scanning Free →</button></SignInButton>
-              <button className="btn-secondary" onClick={() => document.getElementById('how')?.scrollIntoView({ behavior: 'smooth' })} style={{ padding: '14px 28px', fontSize: '15px' }}>See how it works</button>
+            <div className="fade-up-4">
+              {!guestScanUsed ? (
+                <ScanInput isGuest={true} />
+              ) : (
+                // Already used guest scan — show locked input with sign-up nudge
+                <div style={{ width: '100%', maxWidth: '640px', margin: '0 auto' }}>
+                  <div style={{ display: 'flex', gap: '4px', background: 'white', border: '1.5px solid var(--border)', borderRadius: '12px', padding: '4px', boxShadow: '0 8px 32px rgba(0,0,0,0.10)', opacity: 0.5, pointerEvents: 'none' }}>
+                    <input
+                      type="url"
+                      placeholder="https://freelancer-portfolio.com"
+                      disabled
+                      style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', padding: '12px 14px', fontSize: '15px', fontFamily: 'Outfit, sans-serif', color: 'var(--ink)' }}
+                    />
+                    <button className="btn-primary" disabled style={{ borderRadius: '9px', padding: '12px 24px', whiteSpace: 'nowrap', minWidth: '130px' }}>Scan URL →</button>
+                  </div>
+                  <p style={{ textAlign: 'center', fontSize: '13px', color: 'var(--ink3)', marginTop: '10px' }}>
+                    Guest scan used. Sign up free for 3 scans every month.
+                  </p>
+                </div>
+              )}
             </div>
-            <p style={{ marginTop: '14px', fontSize: '13px', color: 'var(--ink3)' }}>Free · No credit card · 3 scans/month</p>
+
+            {/* Guest error */}
+            {error && (
+              <div style={{ marginTop: '20px', background: 'var(--red-dim)', border: '1px solid rgba(208,2,27,0.2)', borderRadius: '10px', padding: '14px 20px', color: 'var(--red)', fontSize: '14px', maxWidth: '640px', margin: '20px auto 0' }}>
+                {error}
+              </div>
+            )}
+
+            {/* Guest result */}
+            {result && !guestScanUsed === false && (
+              <div style={{ marginTop: '40px', maxWidth: '760px', margin: '40px auto 0', textAlign: 'left' }}>
+                <div className="card" style={{ padding: '32px', animation: 'fadeUp 0.5s ease' }}>
+                  <div style={{ paddingBottom: '24px', marginBottom: '24px', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink3)', marginBottom: '10px' }}>AI Authorship Score</div>
+                    <ScoreDisplay score={result.score} verdict={result.verdict} cached={result.cached} confidence={result.confidence} />
+                  </div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink3)', marginBottom: '10px' }}>Analysis</div>
+                  <p style={{ fontSize: '14px', color: 'var(--ink2)', lineHeight: 1.7 }}>{result.reasoning}</p>
+                  {result.signals && <SignalGrid signals={result.signals} />}
+                </div>
+                <GuestUpsell />
+              </div>
+            )}
+
+            {/* Show upsell immediately after guest scan used if no result yet */}
+            {guestScanUsed && !result && (
+              <div style={{ maxWidth: '760px', margin: '24px auto 0' }}>
+                <GuestUpsell />
+              </div>
+            )}
+
+            {/* If no guest scan used yet, show subtle sign-in links below input */}
+            {!guestScanUsed && !result && (
+              <p style={{ marginTop: '14px', fontSize: '13px', color: 'var(--ink3)' }}>
+                Already have an account?{' '}
+                <SignInButton mode="modal">
+                  <span style={{ color: 'var(--blue)', cursor: 'pointer', fontWeight: 600 }}>Sign in</span>
+                </SignInButton>
+              </p>
+            )}
           </SignedOut>
         </section>
 
