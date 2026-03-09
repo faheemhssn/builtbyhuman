@@ -348,11 +348,11 @@ export default function App() {
           <div className="fade-up" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--blue-dim)', color: 'var(--blue)', borderRadius: '20px', padding: '5px 14px', fontSize: '12px', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: '28px', border: '1px solid rgba(26,108,255,0.15)' }}>
             ◉ AI Authorship Detection
           </div>
-          <h1 className="fade-up-2" style={{ fontSize: 'clamp(40px, 7vw, 76px)', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1.0, color: 'var(--ink)', marginBottom: '24px' }}>
-            Was this site<br />built by a human?
+          <h1 className="fade-up-2" style={{ fontSize: 'clamp(36px, 6vw, 68px)', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1.05, color: 'var(--ink)', marginBottom: '24px' }}>
+            Verify the Human Behind the Screen.
           </h1>
-          <p className="fade-up-3" style={{ fontSize: '18px', color: 'var(--ink2)', lineHeight: 1.6, marginBottom: '44px', maxWidth: '520px', margin: '0 auto 44px' }}>
-            Stop paying human rates for AI-generated work. Instantly audit any URL and uncover hidden AI authorship signals in the code.
+          <p className="fade-up-3" style={{ fontSize: '18px', color: 'var(--ink2)', lineHeight: 1.7, marginBottom: '44px', maxWidth: '620px', margin: '0 auto 44px' }}>
+            The gold standard for academic integrity and professional trust. Whether you're an educator protecting the classroom or a student proving your original voice, BuiltByHuman.app provides deep AI authorship signal breakdowns for any URL in seconds.
           </p>
 
           <SignedIn>
