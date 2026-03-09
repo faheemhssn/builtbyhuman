@@ -22,6 +22,7 @@ const FONTS = `
     --red: #D0021B;
     --red-dim: #FFF0F0;
     --purple-mid: #7C3AED;
+    --purple-dim: #F3EEFF;
     --radius: 12px;
     --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
     --shadow-lg: 0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
@@ -47,14 +48,22 @@ const FONTS = `
     cursor: pointer; transition: all 0.15s ease;
   }
   .btn-secondary:hover { border-color: var(--blue); color: var(--blue); transform: translateY(-1px); }
+  .btn-purple {
+    background: var(--purple-mid); color: white; border: none; border-radius: 8px;
+    padding: 12px 28px; font-family: 'Outfit', sans-serif; font-weight: 600;
+    font-size: 15px; cursor: pointer; transition: all 0.15s ease; letter-spacing: -0.01em;
+  }
+  .btn-purple:hover { background: #6D28D9; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(124,58,237,0.3); }
+  .btn-purple:active { transform: translateY(0); }
   .card { background: white; border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
   .mono { font-family: 'JetBrains Mono', monospace; }
   .nav-link { font-size: 14px; color: var(--ink2); text-decoration: none; font-weight: 500; transition: color 0.15s; cursor: pointer; background: none; border: none; font-family: 'Outfit', sans-serif; }
   .nav-link:hover { color: var(--blue); }
   .feature-card { background: white; border: 1px solid var(--border); border-radius: 16px; padding: 28px; transition: all 0.2s; }
   .feature-card:hover { border-color: rgba(26,108,255,0.3); box-shadow: 0 8px 32px rgba(26,108,255,0.08); transform: translateY(-2px); }
-  .pricing-card { background: white; border: 1.5px solid var(--border); border-radius: 20px; padding: 36px; flex: 1; min-width: 280px; max-width: 380px; }
+  .pricing-card { background: white; border: 1.5px solid var(--border); border-radius: 20px; padding: 36px; flex: 1; min-width: 260px; max-width: 340px; }
   .pricing-card.featured { border-color: var(--blue); background: linear-gradient(135deg, #F0F5FF 0%, #FFFFFF 100%); box-shadow: 0 8px 40px rgba(26,108,255,0.12); }
+  .pricing-card.educator { border-color: var(--purple-mid); background: linear-gradient(135deg, #F5F0FF 0%, #FFFFFF 100%); box-shadow: 0 8px 40px rgba(124,58,237,0.10); }
   .step-num { width: 36px; height: 36px; border-radius: 50%; background: var(--blue-dim); color: var(--blue); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; flex-shrink: 0; }
 `
 
@@ -498,48 +507,82 @@ export default function App() {
         </section>
 
         {/* PRICING */}
-        <section id="pricing" style={{ padding: '80px 40px', maxWidth: '860px', margin: '0 auto' }}>
+        <section id="pricing" style={{ padding: '80px 40px', maxWidth: '1100px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
             <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--blue)', marginBottom: '12px' }}>Pricing</div>
             <h2 style={{ fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 800, letterSpacing: '-0.03em' }}>Simple, transparent pricing</h2>
+            <p style={{ fontSize: '15px', color: 'var(--ink3)', marginTop: '12px' }}>Whether you're vetting freelancers, protecting your classroom, or scaling a team.</p>
           </div>
           <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
-            {[
-              { name: 'Free', price: '$0', period: 'forever', features: ['3 scans per month', 'Single page scanning', 'AI / Human signal breakdown', 'Shareable report links'], cta: 'Get Started Free', featured: false },
-              { name: 'Pro', price: '$12', period: 'per month', features: ['50 scans per month', 'Site-wide crawling (5 pages)', 'Priority Claude Sonnet analysis', 'Full signal breakdown', 'Shareable report links', 'Monthly scan reset'], cta: 'Upgrade to Pro', featured: true },
-            ].map(({ name, price, period, features, cta, featured }) => (
-              <div key={name} className={`pricing-card${featured ? ' featured' : ''}`}>
-                {featured && <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--blue)', marginBottom: '14px' }}>Most Popular</div>}
-                <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '10px' }}>{name}</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '4px' }}>
-                  <span className="mono" style={{ fontSize: '44px', fontWeight: 700, letterSpacing: '-0.03em' }}>{price}</span>
-                  <span style={{ fontSize: '13px', color: 'var(--ink3)' }}>/{period}</span>
-                </div>
-                <div style={{ borderTop: '1px solid var(--border)', margin: '20px 0', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {features.map(f => (
-                    <div key={f} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', fontSize: '13px', color: 'var(--ink2)' }}>
-                      <span style={{ color: 'var(--green)', fontWeight: 700, flexShrink: 0 }}>✓</span>{f}
-                    </div>
-                  ))}
-                </div>
-                <SignedOut>
-                  <SignInButton mode="modal">
-                    <button className={featured ? 'btn-primary' : 'btn-secondary'} style={{ width: '100%', padding: '12px' }}>{cta}</button>
-                  </SignInButton>
-                </SignedOut>
-                <SignedIn>
-                  {featured
-                    ? <button className="btn-primary" style={{ width: '100%', padding: '12px' }} onClick={handleUpgrade}>{cta}</button>
-                    : <button className="btn-secondary" style={{ width: '100%', padding: '12px', cursor: 'default' }}>Current Plan</button>
-                  }
-                </SignedIn>
+
+            {/* FREE */}
+            <div className="pricing-card">
+              <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '10px' }}>Free</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '4px' }}>
+                <span className="mono" style={{ fontSize: '44px', fontWeight: 700, letterSpacing: '-0.03em' }}>$0</span>
+                <span style={{ fontSize: '13px', color: 'var(--ink3)' }}>/forever</span>
               </div>
-            ))}
-          </div>
-          <div style={{ textAlign: 'center', marginTop: '24px' }}>
-            <a href="/educators" style={{ fontSize: '14px', color: 'var(--purple-mid)', fontWeight: 600, textDecoration: 'none' }}>
-              🎓 Looking for the Educator plan? →
-            </a>
+              <div style={{ fontSize: '13px', color: 'var(--ink3)', marginBottom: '20px' }}>Try it out, no commitment</div>
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
+                {['3 scans per month', 'Single page scanning', 'AI / Human signal breakdown', 'Shareable report links'].map(f => (
+                  <div key={f} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', fontSize: '13px', color: 'var(--ink2)' }}>
+                    <span style={{ color: 'var(--green)', fontWeight: 700, flexShrink: 0 }}>✓</span>{f}
+                  </div>
+                ))}
+              </div>
+              <SignedOut>
+                <SignInButton mode="modal"><button className="btn-secondary" style={{ width: '100%', padding: '12px' }}>Get Started Free</button></SignInButton>
+              </SignedOut>
+              <SignedIn>
+                <button className="btn-secondary" style={{ width: '100%', padding: '12px', cursor: 'default' }}>Current Plan</button>
+              </SignedIn>
+            </div>
+
+            {/* PRO */}
+            <div className="pricing-card featured">
+              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--blue)', marginBottom: '14px' }}>Most Popular</div>
+              <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '10px' }}>Pro</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '4px' }}>
+                <span className="mono" style={{ fontSize: '44px', fontWeight: 700, letterSpacing: '-0.03em' }}>$12</span>
+                <span style={{ fontSize: '13px', color: 'var(--ink3)' }}>/month</span>
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--ink3)', marginBottom: '20px' }}>For freelancers and agencies</div>
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
+                {['50 scans per month', 'Site-wide crawling (5 pages)', 'Priority Claude Sonnet analysis', 'Full signal breakdown', 'Shareable report links', 'Monthly scan reset'].map(f => (
+                  <div key={f} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', fontSize: '13px', color: 'var(--ink2)' }}>
+                    <span style={{ color: 'var(--green)', fontWeight: 700, flexShrink: 0 }}>✓</span>{f}
+                  </div>
+                ))}
+              </div>
+              <SignedOut>
+                <SignInButton mode="modal"><button className="btn-primary" style={{ width: '100%', padding: '12px' }}>Upgrade to Pro</button></SignInButton>
+              </SignedOut>
+              <SignedIn>
+                <button className="btn-primary" style={{ width: '100%', padding: '12px' }} onClick={handleUpgrade}>Upgrade to Pro</button>
+              </SignedIn>
+            </div>
+
+            {/* EDUCATOR */}
+            <div className="pricing-card educator">
+              <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--purple-mid)', marginBottom: '14px' }}>🎓 For Educators</div>
+              <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '10px' }}>Educator</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '4px' }}>
+                <span className="mono" style={{ fontSize: '44px', fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--purple-mid)' }}>$29</span>
+                <span style={{ fontSize: '13px', color: 'var(--ink3)' }}>/month</span>
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--ink3)', marginBottom: '20px' }}>Built for teachers and institutions</div>
+              <div style={{ borderTop: '1px solid rgba(124,58,237,0.15)', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
+                {['200 scans per month', 'Bulk student submission checks', 'Site-wide crawling (5 pages)', 'Full signal breakdown', 'Shareable report links', 'Priority support'].map(f => (
+                  <div key={f} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', fontSize: '13px', color: 'var(--ink2)' }}>
+                    <span style={{ color: 'var(--purple-mid)', fontWeight: 700, flexShrink: 0 }}>✓</span>{f}
+                  </div>
+                ))}
+              </div>
+              <a href="/educators">
+                <button className="btn-purple" style={{ width: '100%', padding: '12px' }}>Learn More →</button>
+              </a>
+            </div>
+
           </div>
         </section>
 
