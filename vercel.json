@@ -4,5 +4,8 @@
       "path": "/api/cron-reset",
       "schedule": "0 0 * * *"
     }
+  ],
+  "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
