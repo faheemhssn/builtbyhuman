@@ -97,7 +97,6 @@ export default function App() {
     }
   }, [])
 
-  // Handle ?scan= param from browser extension
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const scanParam = params.get('scan')
@@ -144,7 +143,6 @@ export default function App() {
     setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000)
   }
 
-  // ROUTE: Educators page
   if (window.location.pathname === '/educators') return <Educators />
 
   const ScoreDisplay = ({ score, verdict, size = 'lg', cached = false, confidence }) => {
@@ -244,6 +242,7 @@ export default function App() {
     <div style={{ width: '100%', maxWidth: '640px', margin: '0 auto' }}>
       <div style={{ display: 'flex', gap: '4px', background: 'white', border: '1.5px solid var(--border)', borderRadius: '12px', padding: '4px', boxShadow: '0 8px 32px rgba(0,0,0,0.10)' }}>
         <input
+          autoFocus
           type="url"
           placeholder="https://freelancer-portfolio.com"
           value={url}
@@ -251,7 +250,12 @@ export default function App() {
           onKeyDown={e => e.key === 'Enter' && handleScan()}
           style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', padding: '12px 14px', fontSize: '15px', fontFamily: 'Outfit, sans-serif', color: 'var(--ink)' }}
         />
-        <button className="btn-primary" onClick={handleScan} disabled={loading || !url} style={{ borderRadius: '9px', padding: '12px 24px', whiteSpace: 'nowrap', minWidth: '130px' }}>
+        <button
+          className="btn-primary"
+          onClick={handleScan}
+          disabled={loading || !url}
+          style={{ borderRadius: '9px', padding: '12px 24px', whiteSpace: 'nowrap', minWidth: '130px' }}
+        >
           {loading ? (
             <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
               <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
@@ -262,7 +266,12 @@ export default function App() {
       </div>
       <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
         {['single', 'site'].map(mode => (
-          <button key={mode} onClick={() => setScanMode(mode)} style={{ background: scanMode === mode ? 'var(--blue-dim)' : 'transparent', color: scanMode === mode ? 'var(--blue)' : 'var(--ink3)', border: '1px solid', borderColor: scanMode === mode ? 'rgba(26,108,255,0.2)' : 'transparent', borderRadius: '20px', padding: '5px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Outfit, sans-serif', transition: 'all 0.15s' }}>
+          <button
+            key={mode}
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => setScanMode(mode)}
+            style={{ background: scanMode === mode ? 'var(--blue-dim)' : 'transparent', color: scanMode === mode ? 'var(--blue)' : 'var(--ink3)', border: '1px solid', borderColor: scanMode === mode ? 'rgba(26,108,255,0.2)' : 'transparent', borderRadius: '20px', padding: '5px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Outfit, sans-serif', transition: 'all 0.15s' }}
+          >
             {mode === 'single' ? 'Single Page' : '🌐 Entire Site'}
           </button>
         ))}
@@ -453,7 +462,7 @@ export default function App() {
               { icon: '◎', title: 'Site-Wide Crawling', desc: 'Scans up to 5 pages across an entire domain and aggregates an overall authorship score with per-page breakdowns.' },
               { icon: '◉', title: 'Confidence Scoring', desc: 'Returns a 0–100 AI probability score alongside human vs. AI signal breakdowns with detailed reasoning from Claude Sonnet.' },
               { icon: '↗', title: 'Shareable Reports', desc: 'Every scan generates a permanent public report URL. Share with clients, professors, or colleagues — no login required to view.' },
-              { icon: '◑', title: 'Human Signal Detection', desc: 'Identifies genuine human patterns — inconsistent style, TODO comments, domain vocabulary, and custom logic that AI wouldn\'t write.' },
+              { icon: '◑', title: 'Human Signal Detection', desc: "Identifies genuine human patterns — inconsistent style, TODO comments, domain vocabulary, and custom logic that AI wouldn't write." },
             ].map(({ icon, title, desc }) => (
               <div key={title} className="feature-card">
                 <div style={{ fontSize: '20px', marginBottom: '14px', background: 'var(--blue-dim)', width: '42px', height: '42px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--blue)' }}>{icon}</div>
