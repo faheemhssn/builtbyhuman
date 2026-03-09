@@ -403,6 +403,15 @@ export default function App() {
           <span style={{ fontSize: '19px', fontWeight: 800, letterSpacing: '-0.04em' }}>BuiltBy<span style={{ color: 'var(--blue)' }}>Human</span></span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
             <button className="nav-link" onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}>Features</button>
+            <a href="https://www.producthunt.com/products/builtbyhuman-app?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-builtbyhuman-app" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center' }}>
+              <img
+                src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1093719&theme=dark&t=1773079720012"
+                alt="builtbyhuman.app on Product Hunt"
+                style={{ width: '160px', height: '34px', display: 'block' }}
+                width="160"
+                height="34"
+              />
+            </a>
             <button className="nav-link" onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}>Pricing</button>
             <a href="/educators" className="nav-link" style={{ color: 'var(--purple-mid)', fontWeight: 600 }}>For Educators</a>
             <SignedOut>
