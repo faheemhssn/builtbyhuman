@@ -97,6 +97,16 @@ export default function App() {
     }
   }, [])
 
+  // Handle ?scan= param from browser extension
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const scanParam = params.get('scan')
+    if (scanParam) {
+      setUrl(scanParam)
+      window.history.replaceState({}, '', '/')
+    }
+  }, [])
+
   const handleScan = async () => {
     if (!url) return
     setLoading(true); setResult(null); setError(null)
@@ -257,7 +267,7 @@ export default function App() {
           </button>
         ))}
         <span style={{ fontSize: '12px', color: 'var(--ink3)', marginLeft: '4px' }}>
-          {scanLimit - scansUsed < 0 ? 0 : scanLimit - scansUsed} scan{(scanLimit - scansUsed) !== 1 ? 's' : ''} remaining
+          {Math.max(0, scanLimit - scansUsed)} scan{(scanLimit - scansUsed) !== 1 ? 's' : ''} remaining
           {resetDate && ` · resets ${new Date(resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
         </span>
       </div>
@@ -266,7 +276,6 @@ export default function App() {
 
   // SHARED REPORT VIEW
   if (sharedReport) {
-    const vc = getVC(sharedReport.verdict)
     return (
       <>
         <style>{FONTS}</style>
