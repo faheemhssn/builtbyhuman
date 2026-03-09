@@ -539,6 +539,7 @@ export default function App() {
           <span style={{ fontSize: '16px', fontWeight: 800, letterSpacing: '-0.03em' }}>BuiltBy<span style={{ color: 'var(--blue)' }}>Human</span></span>
           <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
             <a href="/educators" style={{ fontSize: '13px', color: 'var(--ink3)', textDecoration: 'none' }}>For Educators</a>
+            <a href="/privacy.html" style={{ fontSize: '13px', color: 'var(--ink3)', textDecoration: 'none' }}>Privacy Policy</a>
             <span style={{ fontSize: '12px', color: 'var(--ink3)' }}>AI Authorship Detection · {new Date().getFullYear()}</span>
           </div>
         </footer>
