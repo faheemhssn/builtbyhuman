@@ -682,7 +682,7 @@ export default function App() {
               </div>
               <div style={{ fontSize: '13px', color: 'var(--ink3)', marginBottom: '20px' }}>Built for teachers and institutions</div>
               <div style={{ borderTop: '1px solid rgba(124,58,237,0.15)', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
-                {['200 scans per month', 'Bulk student submission checks', 'Site-wide crawling (5 pages)', 'Full signal breakdown', 'Shareable report links', 'Priority support'].map(f => (
+                {['Unlimited scans', 'Bulk student submission checks', 'Site-wide crawling (5 pages)', 'Full signal breakdown', 'Shareable report links', 'Priority support'].map(f => (
                   <div key={f} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', fontSize: '13px', color: 'var(--ink2)' }}>
                     <span style={{ color: 'var(--purple-mid)', fontWeight: 700, flexShrink: 0 }}>✓</span>{f}
                   </div>
