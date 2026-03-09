@@ -697,8 +697,17 @@ export default function App() {
         </section>
 
         {/* FOOTER */}
-        <footer style={{ borderTop: '1px solid var(--border)', background: 'white', padding: '28px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+        <footer style={{ borderTop: '1px solid var(--border)', background: 'white', padding: '28px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <span style={{ fontSize: '16px', fontWeight: 800, letterSpacing: '-0.03em' }}>BuiltBy<span style={{ color: 'var(--blue)' }}>Human</span></span>
+          <a href="https://www.producthunt.com/products/builtbyhuman-app?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-builtbyhuman-app" target="_blank" rel="noopener noreferrer">
+            <img
+              src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1093719&theme=dark&t=1773079720012"
+              alt="builtbyhuman.app - Paste any URL. Find out if a human actually built it. | Product Hunt"
+              style={{ width: '250px', height: '54px', display: 'block' }}
+              width="250"
+              height="54"
+            />
+          </a>
           <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
             <a href="/educators" style={{ fontSize: '13px', color: 'var(--ink3)', textDecoration: 'none' }}>For Educators</a>
             <a href="/privacy.html" style={{ fontSize: '13px', color: 'var(--ink3)', textDecoration: 'none' }}>Privacy Policy</a>
