@@ -80,6 +80,7 @@ export default function App() {
   const [scanLimit, setScanLimit] = useState(3)
   const [resetDate, setResetDate] = useState(null)
   const [scanMode, setScanMode] = useState('single')
+  const [isPro, setIsPro] = useState(false)
   const [reportId, setReportId] = useState(null)
   const [sharedReport, setSharedReport] = useState(null)
   const [linkCopied, setLinkCopied] = useState(false)
@@ -99,7 +100,7 @@ export default function App() {
         const { data: newUser } = await supabase.from('users').insert({ user_id: user.id, scan_limit: 3, scans_used: 0 }).select().single()
         userData = newUser
       }
-      if (userData) { setScanLimit(userData.scan_limit); setScansUsed(userData.scans_used); setResetDate(userData.reset_date) }
+      if (userData) { setScanLimit(userData.scan_limit); setScansUsed(userData.scans_used); setResetDate(userData.reset_date); setIsPro(userData.is_pro || false) }
     }
     fetchUserData()
   }, [user])
@@ -653,7 +654,10 @@ export default function App() {
                 <SignInButton mode="modal"><button className="btn-secondary" style={{ width: '100%', padding: '12px' }}>Get Started Free</button></SignInButton>
               </SignedOut>
               <SignedIn>
-                <button className="btn-secondary" style={{ width: '100%', padding: '12px', cursor: 'default' }}>Current Plan</button>
+                {!isPro
+                  ? <button className="btn-secondary" style={{ width: '100%', padding: '12px', cursor: 'default' }}>Current Plan</button>
+                  : <button className="btn-secondary" style={{ width: '100%', padding: '12px', cursor: 'default', opacity: 0.5 }}>Free</button>
+                }
               </SignedIn>
             </div>
 
@@ -677,7 +681,10 @@ export default function App() {
                 <SignInButton mode="modal"><button className="btn-primary" style={{ width: '100%', padding: '12px' }}>Upgrade to Pro</button></SignInButton>
               </SignedOut>
               <SignedIn>
-                <button className="btn-primary" style={{ width: '100%', padding: '12px' }} onClick={handleUpgrade}>Upgrade to Pro</button>
+                {isPro
+                  ? <button className="btn-primary" style={{ width: '100%', padding: '12px', cursor: 'default', background: 'var(--green)' }}>✓ Current Plan</button>
+                  : <button className="btn-primary" style={{ width: '100%', padding: '12px' }} onClick={handleUpgrade}>Upgrade to Pro</button>
+                }
               </SignedIn>
             </div>
 
