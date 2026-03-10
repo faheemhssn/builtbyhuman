@@ -58,6 +58,12 @@ const FONTS = `
   .card { background: white; border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
   .mono { font-family: 'JetBrains Mono', monospace; }
   .nav-link { font-size: 14px; color: var(--ink2); text-decoration: none; font-weight: 500; transition: color 0.15s; cursor: pointer; background: none; border: none; font-family: 'Outfit', sans-serif; }
+  .nav-desktop { display: flex !important; }
+  .nav-mobile { display: none !important; }
+  @media (max-width: 768px) {
+    .nav-desktop { display: none !important; }
+    .nav-mobile { display: flex !important; }
+  }
   .nav-link:hover { color: var(--blue); }
   .feature-card { background: white; border: 1px solid var(--border); border-radius: 16px; padding: 28px; transition: all 0.2s; }
   .feature-card:hover { border-color: rgba(26,108,255,0.3); box-shadow: 0 8px 32px rgba(26,108,255,0.08); transform: translateY(-2px); }
@@ -400,28 +406,48 @@ export default function App() {
       <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
 
         {/* NAV */}
-        <nav style={{ background: 'rgba(249,248,246,0.9)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border)', padding: '0 40px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
-          <span style={{ fontSize: '19px', fontWeight: 800, letterSpacing: '-0.04em' }}>BuiltBy<span style={{ color: 'var(--blue)' }}>Human</span></span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+        <nav style={{ background: 'rgba(249,248,246,0.9)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border)', padding: '0 20px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
+          <span style={{ fontSize: '19px', fontWeight: 800, letterSpacing: '-0.04em', flexShrink: 0 }}>BuiltBy<span style={{ color: 'var(--blue)' }}>Human</span></span>
+          {/* Desktop nav */}
+          <div className="nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             <a href="https://www.producthunt.com/products/builtbyhuman-app?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-builtbyhuman-app" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center' }}>
-              <img
-                src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1093719&theme=dark&t=1773079720012"
-                alt="builtbyhuman.app on Product Hunt"
-                style={{ width: '160px', height: '34px', display: 'block' }}
-                width="160"
-                height="34"
-              />
+              <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1093719&theme=dark&t=1773079720012" alt="builtbyhuman.app on Product Hunt" style={{ width: '140px', height: '30px', display: 'block' }} width="140" height="30" />
             </a>
             <button className="nav-link" onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}>Features</button>
             <button className="nav-link" onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}>Pricing</button>
             <a href="/educators" className="nav-link" style={{ color: 'var(--purple-mid)', fontWeight: 600 }}>For Educators</a>
             <SignedOut>
-              <SignInButton mode="modal"><button className="btn-secondary" style={{ padding: '8px 18px', fontSize: '14px' }}>Sign in</button></SignInButton>
-              <SignInButton mode="modal"><button className="btn-primary" style={{ padding: '9px 18px', fontSize: '14px' }}>Get Started Free</button></SignInButton>
+              <SignInButton mode="modal"><button className="btn-secondary" style={{ padding: '8px 16px', fontSize: '13px' }}>Sign in</button></SignInButton>
+              <SignInButton mode="modal"><button className="btn-primary" style={{ padding: '8px 16px', fontSize: '13px' }}>Get Started Free</button></SignInButton>
             </SignedOut>
             <SignedIn><UserButton /></SignedIn>
           </div>
+          {/* Mobile nav */}
+          <div className="nav-mobile" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <SignedIn><UserButton /></SignedIn>
+            <SignedOut>
+              <SignInButton mode="modal"><button className="btn-primary" style={{ padding: '7px 14px', fontSize: '13px' }}>Sign in</button></SignInButton>
+            </SignedOut>
+            <button
+              onClick={() => { const m = document.getElementById('mobile-menu'); if (m) m.style.display = m.style.display === 'flex' ? 'none' : 'flex'; }}
+              style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '8px', padding: '7px 10px', cursor: 'pointer', fontSize: '18px', lineHeight: 1 }}
+            >☰</button>
+          </div>
         </nav>
+        {/* Mobile dropdown menu */}
+        <div id="mobile-menu" style={{ display: 'none', flexDirection: 'column', background: 'white', borderBottom: '1px solid var(--border)', padding: '12px 20px', gap: '4px', position: 'sticky', top: '64px', zIndex: 99 }}>
+          <a href="https://www.producthunt.com/products/builtbyhuman-app?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-builtbyhuman-app" target="_blank" rel="noopener noreferrer" style={{ padding: '10px 0' }}>
+            <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1093719&theme=dark&t=1773079720012" alt="Product Hunt" style={{ width: '140px', height: '30px' }} />
+          </a>
+          <button className="nav-link" style={{ textAlign: 'left', padding: '10px 0', borderBottom: '1px solid var(--border)', borderRadius: 0 }} onClick={() => { document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }); document.getElementById('mobile-menu').style.display = 'none'; }}>Features</button>
+          <button className="nav-link" style={{ textAlign: 'left', padding: '10px 0', borderBottom: '1px solid var(--border)', borderRadius: 0 }} onClick={() => { document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }); document.getElementById('mobile-menu').style.display = 'none'; }}>Pricing</button>
+          <a href="/educators" className="nav-link" style={{ color: 'var(--purple-mid)', fontWeight: 600, padding: '10px 0' }}>For Educators</a>
+          <SignedOut>
+            <div style={{ paddingTop: '8px' }}>
+              <SignInButton mode="modal"><button className="btn-primary" style={{ width: '100%', padding: '11px' }}>Get Started Free</button></SignInButton>
+            </div>
+          </SignedOut>
+        </div>
 
         {/* HERO */}
         <section style={{ padding: '80px 24px 64px', textAlign: 'center', maxWidth: '900px', margin: '0 auto' }}>
