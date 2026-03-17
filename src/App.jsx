@@ -165,6 +165,15 @@ export default function App() {
     } catch (err) { console.error(err) }
   }
 
+  const handlePortal = async () => {
+    try {
+      const res = await fetch('/api/portal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: user?.primaryEmailAddress?.emailAddress }) })
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+      else alert(data.error || 'Could not open billing portal.')
+    } catch (err) { console.error(err) }
+  }
+
   const verdictConfig = {
     likely_human: { color: 'var(--green)', bg: 'var(--green-dim)', label: 'Likely Human', icon: '◎' },
     mixed: { color: 'var(--amber)', bg: 'var(--amber-dim)', label: 'Mixed Signals', icon: '◑' },
@@ -469,6 +478,17 @@ export default function App() {
               <div style={{ marginTop: '20px', background: 'var(--red-dim)', border: '1px solid rgba(208,2,27,0.2)', borderRadius: '10px', padding: '14px 20px', color: 'var(--red)', fontSize: '14px', maxWidth: '640px', margin: '20px auto 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
                 <span>{error}</span>
                 {error.includes('Upgrade') && <button className="btn-primary" onClick={handleUpgrade} style={{ padding: '7px 16px', fontSize: '13px', whiteSpace: 'nowrap' }}>Upgrade →</button>}
+              </div>
+            )}
+
+            {isPro && (
+              <div style={{ textAlign: 'center', marginTop: '12px' }}>
+                <button
+                  onClick={handlePortal}
+                  style={{ background: 'none', border: 'none', color: '#8A8A9A', fontSize: '12px', cursor: 'pointer', fontFamily: 'Outfit, sans-serif', textDecoration: 'underline', padding: 0 }}
+                >
+                  Manage subscription · Cancel anytime
+                </button>
               </div>
             )}
 
